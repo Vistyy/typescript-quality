@@ -8,7 +8,8 @@ Project-local configuration owns source selection, runtime and framework assumpt
 
 ## Supported toolchain
 
-The supported Node.js range is `^20.19.0 || >=22.12.0`.
+The declared Node.js range is `^20.19.0 || >=22.12.0`.
+The packed-consumer check has been verified on Node.js 24 on Linux; other allowed versions are not yet verified.
 
 The supported versions are `@biomejs/biome@2.5.12`, `oxlint@1.81.0`, `@oxlint/plugins@1.81.0`, `oxlint-tsgolint@7.0.2001`, `typescript@7.0.2`, `@effect/tsgo@0.41.0`, and `effect@4.0.0-rc.112`.
 
@@ -20,10 +21,12 @@ The package's `peerDependencies` express the toolchain contract, while `@oxlint/
 
 ## Installation
 
+The initial npm release is pending maintainer account setup.
+The following installation commands apply after that release is published.
 Install the package and the exact tools as development dependencies.
 
 ```sh
-npm install --save-dev \
+npm install --save-dev --save-exact \
   @vistyy/typescript-quality@0.1.0 \
   @biomejs/biome@2.5.12 \
   oxlint@1.81.0 \
@@ -34,7 +37,8 @@ npm install --save-dev \
 Effect projects additionally install the Effect pins.
 
 ```sh
-npm install --save-dev @effect/tsgo@0.41.0 effect@4.0.0-rc.112
+npm install --save-dev --save-exact @effect/tsgo@0.41.0
+npm install --save-exact effect@4.0.0-rc.112
 ```
 
 Use a package manager lockfile and run installation in CI with its frozen-lockfile mode.
@@ -60,11 +64,13 @@ import { defineConfig } from "oxlint";
 import baseConfig from "@vistyy/typescript-quality/oxlint";
 
 export default defineConfig({
-  extends: [baseConfig],
+  ...baseConfig,
   ignorePatterns: ["dist/**", "coverage/**"],
 });
 ```
 
+Spread the imported config at the root rather than only putting it in `extends`, because Oxlint's execution options are root-owned.
+This carries full type-checking and blocking warning policy into the consuming project.
 Use `@vistyy/typescript-quality/oxlint/effect` instead for an Effect project.
 
 ```ts
@@ -72,7 +78,7 @@ import { defineConfig } from "oxlint";
 import effectConfig from "@vistyy/typescript-quality/oxlint/effect";
 
 export default defineConfig({
-  extends: [effectConfig],
+  ...effectConfig,
   ignorePatterns: ["dist/**", "coverage/**"],
 });
 ```
@@ -106,7 +112,10 @@ The vendored anti-slop wrapper owns explicit evidence rules for unknown inputs a
 
 The spelling-based `no-shape-in-symbol-names` rule is intentionally not enabled.
 
-The Effect-specific `no-service-constructor-imports` rule is available only through the Effect configuration export.
+The Effect preset enables the pinned upstream `recommended` rule set, with every selected Effect rule promoted to an error.
+This includes correctness, Effect-native API, antipattern, and style diagnostics; narrow project exceptions remain available.
+The name-based `no-service-constructor-imports` rule is not enabled by either preset.
+Its separate `anti-slop/effect` plugin export is available only for explicit project opt-in.
 
 The `no-unknown-parameters` rule remains enabled, with the upstream rule's narrow exceptions for a `cause` parameter and the subject of a type predicate.
 
@@ -122,17 +131,17 @@ For a non-Effect project, run Biome once and Oxlint's type-aware type-check once
 
 ```sh
 npx biome check --error-on-warnings .
-npx oxlint --config oxlint.config.ts --type-aware --type-check --deny-warnings --report-unused-disable-directives .
+npx oxlint --config oxlint.config.ts --report-unused-disable-directives .
 ```
 
-`oxlint --type-check` is the full TypeScript type-check owner for this baseline, so do not add a redundant `tsc --noEmit` invocation to the same check.
+Oxlint's `typeCheck: true` option is the full TypeScript type-check owner for this baseline, so do not add a redundant `tsc --noEmit` invocation to the same check.
 
 For an Effect project, patch Oxlint once after installation and run the Effect preset instead.
 
 ```sh
-npx effect-tsgo patch --oxlint
+npx effect-tsgo patch --oxlint --no-typescript
 npx biome check --error-on-warnings .
-npx oxlint --config oxlint.config.ts --type-aware --type-check --deny-warnings --report-unused-disable-directives .
+npx oxlint --config oxlint.config.ts --report-unused-disable-directives .
 ```
 
 The patch command validates the compatible Oxlint and `oxlint-tsgolint` versions.
@@ -161,13 +170,13 @@ The type-predicate exception is valid only for the parameter being narrowed.
 
 Keep `cause` parameters limited to error-context enrichment.
 
-Use an inline disable only when the exception cannot be expressed as a file override, and enable `reportUnusedDisableDirectives: "error"` so stale exceptions fail.
+Use the narrowest clear exception, whether a file override or an inline disable, and retain the unused-disable check so stale exceptions fail.
 
 Do not automatically enable `no-shape-in-symbol-names` or `no-service-constructor-imports` for a project that has not adopted those scopes.
 
 ## Upgrades
 
-Upgrade one pinned tool at a time in a branch.
+Upgrade a compatible set of pins together in a branch.
 
 Read the upstream release notes and compatibility table before changing a pin.
 
@@ -175,7 +184,7 @@ For an anti-slop update, copy canonical production source from a reviewed upstre
 
 Run the packed-consumer check and the negative enforcement examples before committing an upgrade.
 
-Re-run `effect-tsgo patch --oxlint` after changing `@effect/tsgo`, Oxlint, or `oxlint-tsgolint`.
+Re-run `effect-tsgo patch --oxlint --no-typescript` after changing `@effect/tsgo`, Oxlint, or `oxlint-tsgolint`.
 
 Expect Effect v4 release-candidate diagnostics to change as the release candidate evolves.
 
@@ -199,11 +208,26 @@ Expect Effect v4 release-candidate diagnostics to change as the release candidat
 
 `npm run check` packs this repository, installs the packed tarball into disposable external consumers, and runs valid and invalid examples through the real installed tools.
 
-The check asserts nonzero exit codes for cognitive complexity, unsafe type-aware values, floating or unhandled Effects, and invalid boundary parameters.
-
-The check also proves that the allowed type-predicate boundary and a valid Effect program pass.
+The check asserts named diagnostics and nonzero exit codes for ordinary TypeScript errors, cognitive complexity, unsafe type-aware values, floating or unhandled Effects, and invalid boundary parameters.
+It exercises root configuration without CLI flags that could conceal missing type-check policy.
+The check also verifies an allowed type predicate, a valid Effect program, and a pure factory import whose name starts with `make`.
 
 Disposable consumers and their processes are removed when the check exits.
+
+## Publishing
+
+The GitHub repository is `Vistyy/typescript-quality`.
+The initial npm publication requires an authenticated maintainer who owns the npm scope; a matching GitHub username does not establish that ownership.
+After confirming the scope and enabling npm two-factor authentication, run `npm login`, `npm ci`, `npm run check`, and `npm publish --access public` for the first release.
+Remove the pending-publication notice above when publishing that release.
+
+Once the package exists, configure its npm **Trusted Publisher** settings with GitHub owner `Vistyy`, repository `typescript-quality`, and workflow filename `publish.yml`.
+No npm token belongs in GitHub secrets for this workflow.
+See [npm's trusted-publishing documentation](https://docs.npmjs.com/trusted-publishers/) for the account-side setup.
+
+For subsequent releases, update the package version and lockfile together, commit the change, and push a matching `v<version>` tag.
+The publish workflow checks the exact tagged version, runs the packed-consumer check, and publishes from a GitHub-hosted Node.js 24 runner using OIDC.
+A failed or uncertain publication should be checked against the npm registry before retrying.
 
 ## Limitations
 

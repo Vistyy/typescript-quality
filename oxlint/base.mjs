@@ -2,7 +2,7 @@ export default {
   options: {
     denyWarnings: true,
     typeAware: true,
-    typeCheck: false
+    typeCheck: true
   },
   plugins: ["typescript"],
   jsPlugins: [
