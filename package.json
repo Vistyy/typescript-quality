@@ -1,0 +1,75 @@
+{
+  "name": "@vistyy/typescript-quality",
+  "version": "0.1.0",
+  "description": "Pinned shared TypeScript, Biome, Oxlint, anti-slop, and Effect v4 quality configuration",
+  "license": "MIT",
+  "type": "module",
+  "files": [
+    "dist",
+    "biome",
+    "oxlint",
+    "tsconfig",
+    "vendor",
+    "README.md",
+    "LICENSE"
+  ],
+  "exports": {
+    "./biome": "./biome/base.json",
+    "./oxlint": {
+      "types": "./oxlint/base.d.ts",
+      "default": "./oxlint/base.mjs"
+    },
+    "./tsconfig": "./tsconfig/base.json",
+    "./tsconfig/effect": "./tsconfig/effect.json",
+    "./anti-slop": "./dist/index.js",
+    "./package.json": "./package.json",
+    "./tsconfig/base.json": "./tsconfig/base.json",
+    "./tsconfig/effect.json": "./tsconfig/effect.json",
+    "./anti-slop/effect": "./dist/upstream/effect/index.js",
+    "./anti-slop/canonical": "./dist/upstream/index.js",
+    "./oxlint/base.mjs": {
+      "types": "./oxlint/base.d.ts",
+      "default": "./oxlint/base.mjs"
+    },
+    "./oxlint/effect": {
+      "types": "./oxlint/effect.d.ts",
+      "default": "./oxlint/effect.mjs"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "prepack": "npm run build",
+    "check": "node test/packed-consumer.mjs"
+  },
+  "dependencies": {
+    "@oxlint/plugins": "1.81.0"
+  },
+  "peerDependencies": {
+    "@biomejs/biome": "2.5.12",
+    "@effect/tsgo": "0.41.0",
+    "effect": "4.0.0-rc.112",
+    "oxlint": "1.81.0",
+    "oxlint-tsgolint": "7.0.2001",
+    "typescript": "7.0.2"
+  },
+  "peerDependenciesMeta": {
+    "@effect/tsgo": {
+      "optional": true
+    },
+    "effect": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.12",
+    "@effect/tsgo": "0.41.0",
+    "effect": "4.0.0-rc.112",
+    "oxlint": "1.81.0",
+    "oxlint-tsgolint": "7.0.2001",
+    "typescript": "7.0.2"
+  },
+  "engines": {
+    "node": "^20.19.0 || >=22.12.0"
+  },
+  "packageManager": "npm@11.6.0"
+}

@@ -1,0 +1,35 @@
+{
+  "$schema": "https://unpkg.com/@effect/tsgo@0.41.0/schema.json",
+  "extends": "./base.json",
+  "compilerOptions": {
+    "plugins": [
+      {
+        "name": "@effect/language-service",
+        "diagnostics": true,
+        "includeSuggestionsInTsc": false,
+        "ignoreEffectErrorsInTscExitCode": false,
+        "ignoreEffectWarningsInTscExitCode": false,
+        "skipDisabledOptimization": true,
+        "diagnosticSeverity": {
+          "anyUnknownInErrorContext": "error",
+          "asyncFunction": "error",
+          "effectInFailure": "error",
+          "effectInVoidSuccess": "error",
+          "floatingEffect": "error",
+          "floatingEffectInVitest": "error",
+          "lazyPromiseInEffectSync": "error",
+          "missingEffectContext": "error",
+          "missingEffectError": "error",
+          "missingLayerContext": "error",
+          "missingReturnYieldStar": "error",
+          "missingStarInYieldEffectGen": "error",
+          "promiseInEffectSuccess": "error",
+          "returnEffectInGen": "error",
+          "tryCatchInEffectGen": "error",
+          "unknownInEffectCatch": "error",
+          "unsafeEffectTypeAssertion": "error"
+        }
+      }
+    ]
+  }
+}
