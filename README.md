@@ -8,7 +8,7 @@ The toolchain is verified on Node.js 24 on Linux.
 
 ```sh
 npm install --save-dev --save-exact \
-  @syzom/typescript-quality@0.1.0 \
+  @syzom/typescript-quality@0.1.1 \
   @biomejs/biome@2.5.12 oxlint@1.81.0 oxlint-tsgolint@7.0.2001 \
   typescript@7.0.2
 ```
@@ -72,11 +72,12 @@ Use these same checks locally and in CI:
 
 ```sh
 npx biome check --error-on-warnings .
-npx oxlint --config oxlint.config.ts --report-unused-disable-directives .
+npx oxlint --config oxlint.config.ts .
 ```
 
 Oxlint performs the full TypeScript type-check, so a separate `tsc --noEmit` pass is unnecessary for the same source set.
-Keep the warning guards: inherited rules can retain warning severity even though these commands make them blocking.
+Selected rule warnings are promoted to errors, and unused Oxlint disable directives are errors too.
+The warning guards remain a safeguard for other tool diagnostics.
 
 ## Policy and exceptions
 
@@ -91,7 +92,10 @@ Do not enable both editor and lint integrations to report the same Effect diagno
 
 ## Maintaining this package
 
-Run `npm ci` and `npm run check` before releasing.
+Rule selection lives in `biome/policy.json` and `oxlint/policy.mjs`.
+After changing compatible tool pins or selection policy, run `npm run sync:rules` to regenerate severity overlays from the installed pinned tools.
+Do not hand-edit `biome/base.json` or `oxlint/inherited-errors.mjs`.
+Run `npm ci` and `npm run check` before releasing; the check also rejects stale generated presets.
 The check builds and packs the package, installs it into a disposable consumer, and verifies passing examples and intentional rule violations.
 To release, update the version and lockfile, commit and push, then push the matching `v<version>` tag.
 GitHub Actions verifies that tag and publishes through npm trusted publishing.

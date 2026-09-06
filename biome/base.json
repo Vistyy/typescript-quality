@@ -16,10 +16,76 @@
           "options": {
             "maxAllowedComplexity": 15
           }
-        }
+        },
+        "noAdjacentSpacesInRegex": "error",
+        "noArguments": "error",
+        "noBannedTypes": "error",
+        "noCommaOperator": "error",
+        "noEmptyTypeParameters": "error",
+        "noImportantStyles": "error",
+        "noStaticOnlyClass": "error",
+        "noThisInStatic": "error",
+        "useArrowFunction": "error",
+        "useDateNow": "error",
+        "useNumericLiterals": "error",
+        "useOptionalChain": "error",
+        "useRegexLiterals": "error",
+        "useSimpleNumberKeys": "error"
       },
       "suspicious": {
-        "noExplicitAny": "error"
+        "noExplicitAny": "error",
+        "noApproximativeNumericConstant": "error",
+        "noCatchAssign": "error",
+        "noConfusingLabels": "error",
+        "noConfusingVoidType": "error",
+        "noConstEnum": "error",
+        "noDeprecatedMediaType": "error",
+        "noDocumentCookie": "error",
+        "noDuplicateEnumValues": "error",
+        "noEmptyBlock": "error",
+        "noExtraNonNullAssertion": "error",
+        "noGlobalIsFinite": "error",
+        "noGlobalIsNan": "error",
+        "noIrregularWhitespace": "error",
+        "noOctalEscape": "error",
+        "noProto": "error",
+        "noPrototypeBuiltins": "error",
+        "noRedundantUseStrict": "error",
+        "noSuspiciousSemicolonInJsx": "error",
+        "noTemplateCurlyInString": "error",
+        "noTsIgnore": "error",
+        "noUselessEscapeInString": "error",
+        "noUselessRegexBackrefs": "error",
+        "useAdjacentOverloadSignatures": "error",
+        "useBiomeIgnoreFolder": "error",
+        "useDefaultSwitchClauseLast": "error",
+        "useGoogleFontDisplay": "error",
+        "useIsArray": "error"
+      },
+      "correctness": {
+        "noUnusedFunctionParameters": "error",
+        "noUnusedImports": "error",
+        "noUnusedLabels": "error",
+        "noUnusedPrivateClassMembers": "error",
+        "noUnusedVariables": "error"
+      },
+      "nursery": {
+        "useFlatMathMinMax": "error",
+        "useMathMinMax": "error",
+        "useModernMathApis": "error"
+      },
+      "performance": {
+        "noAccumulatingSpread": "error",
+        "noDynamicNamespaceImportAccess": "error"
+      },
+      "style": {
+        "noDescendingSpecificity": "error",
+        "noNonNullAssertion": "error",
+        "useConst": "error",
+        "useDeprecatedReason": "error",
+        "useExportType": "error",
+        "useImportType": "error",
+        "useLiteralEnumMembers": "error"
       }
     }
   },

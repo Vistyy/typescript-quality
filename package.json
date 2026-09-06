@@ -1,6 +1,6 @@
 {
   "name": "@syzom/typescript-quality",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Pinned shared TypeScript, Biome, Oxlint, anti-slop, and Effect v4 quality configuration",
   "license": "MIT",
   "repository": {
@@ -46,7 +46,9 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "prepack": "npm run build",
-    "check": "node test/packed-consumer.mjs"
+    "sync:rules": "node scripts/sync-rule-severities.mjs",
+    "check:rules": "node scripts/sync-rule-severities.mjs --check",
+    "check": "npm run check:rules && node test/packed-consumer.mjs"
   },
   "dependencies": {
     "@oxlint/plugins": "1.81.0"

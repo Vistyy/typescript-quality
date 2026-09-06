@@ -20,6 +20,7 @@ const run = (command, args) => {
   });
   return {
     output: `${result.stdout ?? ""}${result.stderr ?? ""}`,
+    stdout: result.stdout ?? "",
     status: result.status ?? 1,
   };
 };
@@ -33,11 +34,20 @@ const expectFailure = (label, result, expectedText) => {
     throw new Error(`${label}: expected failure containing ${expectedText}\n${result.output}`);
   }
 };
+const expectErrorDiagnostic = (label, result, rule) => {
+  expectFailure(label, result, rule);
+  const diagnostic = JSON.parse(result.stdout).diagnostics.find((item) =>
+    [item.code, item.category, item.message].some((text) => text?.includes(rule))
+  );
+  if (diagnostic?.severity !== "error") {
+    throw new Error(`${label}: expected an error-level diagnostic\n${result.output}`);
+  }
+};
 const write = (path, content) => writeFileSync(join(consumer, path), content);
 const json = (path, value) => write(path, `${JSON.stringify(value, null, 2)}\n`);
 // Deliberately no type-check/type-aware/deny-warnings flags: adopted config owns them.
 const lint = (path) => run("node_modules/.bin/oxlint", [
-  "--config", "oxlint.config.ts", "--report-unused-disable-directives", path,
+  "--config", "oxlint.config.ts", path,
 ]);
 const configure = (preset) => write("oxlint.config.ts", `import { defineConfig } from "oxlint";
 import config from "@syzom/typescript-quality/oxlint${preset}";
@@ -85,6 +95,21 @@ export const answer: number = 42;
 `);
   expectSuccess("Biome valid example", run("node_modules/.bin/biome", ["check", "--error-on-warnings", "src/valid.ts"]));
   expectSuccess("Oxlint valid example", lint("src/valid.ts"));
+  write("src/biome-severity.ts", 'export const node = document.querySelector("div")!;\n');
+  expectErrorDiagnostic("Inherited Biome severity", run("node_modules/.bin/biome", [
+    "check", "--formatter-enabled=false", "--assist-enabled=false", "--reporter=json", "src/biome-severity.ts",
+  ]), "noNonNullAssertion");
+  rmSync(join(consumer, "src/biome-severity.ts"));
+  write("src/oxlint-severity.ts", "debugger;\nexport {};\n");
+  expectErrorDiagnostic("Inherited Oxlint severity", run("node_modules/.bin/oxlint", [
+    "--config", "oxlint.config.ts", "--format", "json", "src/oxlint-severity.ts",
+  ]), "no-debugger");
+  rmSync(join(consumer, "src/oxlint-severity.ts"));
+  write("src/unused-disable.ts", "// oxlint-disable-next-line no-debugger\nexport const safe = 1;\n");
+  expectErrorDiagnostic("Unused disable severity", run("node_modules/.bin/oxlint", [
+    "--config", "oxlint.config.ts", "--format", "json", "src/unused-disable.ts",
+  ]), "Unused");
+  rmSync(join(consumer, "src/unused-disable.ts"));
   write("src/exhaustive.ts", `export function label(value: "a" | "b"): string {
   switch (value) {
     case "a": return "A";
