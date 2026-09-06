@@ -7,8 +7,8 @@ The toolchain is verified on Node.js 24 on Linux.
 ## Install
 
 ```sh
-npm install --save-dev --save-exact \
-  @syzom/typescript-quality@0.1.1 \
+pnpm add --save-dev --save-exact \
+  @syzom/typescript-quality@0.2.0 \
   @biomejs/biome@2.5.12 oxlint@1.81.0 oxlint-tsgolint@7.0.2001 \
   typescript@7.0.2
 ```
@@ -16,8 +16,8 @@ npm install --save-dev --save-exact \
 For Effect projects, also install:
 
 ```sh
-npm install --save-exact effect@4.0.0-rc.112
-npm install --save-dev --save-exact @effect/tsgo@0.41.0
+pnpm add --save-exact effect@4.0.0-rc.112
+pnpm add --save-dev --save-exact @effect/tsgo@0.41.0
 ```
 
 Keep the compatible versions pinned together and commit the package-manager lockfile.
@@ -65,14 +65,14 @@ For optional Effect editor integration, follow the [Effect TypeScript language-s
 After each installation in an Effect project, patch the compatible Oxlint integration:
 
 ```sh
-npx effect-tsgo patch --oxlint --no-typescript
+pnpm exec effect-tsgo patch --oxlint --no-typescript
 ```
 
 Use these same checks locally and in CI:
 
 ```sh
-npx biome check --error-on-warnings .
-npx oxlint --config oxlint.config.ts .
+pnpm exec biome check --error-on-warnings .
+pnpm exec oxlint --config oxlint.config.ts .
 ```
 
 Oxlint performs the full TypeScript type-check, so a separate `tsc --noEmit` pass is unnecessary for the same source set.
@@ -83,6 +83,8 @@ The warning guards remain a safeguard for other tool diagnostics.
 
 - Biome owns formatting, recommended rules, explicit `any` rejection, and cognitive complexity capped at **15**.
 - Oxlint owns type-aware safety checks and exhaustive union switches, including switches with a `default` case.
+- Assertions to `never` (including locally resolved aliases) and chained assertions are errors even when accompanied by a safety comment.
+- Runtime `typeof` is allowed in explicit type guards and existence probes; other runtime uses remain errors.
 - The Effect preset makes the pinned upstream recommended rules errors and adds unsafe channel-assertion and `any`/`unknown` error/requirements-channel checks.
 - Vendored anti-slop rules reject selected low-evidence patterns; [provenance and update instructions](vendor/anti-slop/PROVENANCE.md) identify their upstream source.
 - There is no file-length limit, blanket constructor-name ban, or `Shape`-name ban.
@@ -93,9 +95,11 @@ Do not enable both editor and lint integrations to report the same Effect diagno
 ## Maintaining this package
 
 Rule selection lives in `biome/policy.json` and `oxlint/policy.mjs`.
-After changing compatible tool pins or selection policy, run `npm run sync:rules` to regenerate severity overlays from the installed pinned tools.
+After changing compatible tool pins or selection policy, run `pnpm sync:rules` to regenerate severity overlays from the installed pinned tools.
 Do not hand-edit `biome/base.json` or `oxlint/inherited-errors.mjs`.
-Run `npm ci` and `npm run check` before releasing; the check also rejects stale generated presets.
+Use the pnpm version pinned in `packageManager`.
+Run `pnpm install --frozen-lockfile` and `pnpm check` before releasing; the check also rejects stale generated presets.
 The check builds and packs the package, installs it into a disposable consumer, and verifies passing examples and intentional rule violations.
 To release, update the version and lockfile, commit and push, then push the matching `v<version>` tag.
-GitHub Actions verifies that tag and publishes through npm trusted publishing.
+GitHub Actions verifies that tag, installs and packs with pnpm, and publishes the verified tarball through npm trusted publishing.
+The npm CLI is used only as the OIDC publication transport, not as the package manager.

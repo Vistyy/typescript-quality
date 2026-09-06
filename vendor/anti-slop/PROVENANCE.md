@@ -5,6 +5,8 @@ The canonical anti-slop production source in `upstream/` is copied without modif
 The upstream `LICENSE` is retained beside the vendored source.
 
 The package entrypoint is a small local policy wrapper around that source.
+The local `rules/` directory adds `no-never-type-assertion` without modifying the pinned upstream source.
+This rule resolves local type aliases using the vendored helper; it does not claim type-checker-level resolution of imported or computed types.
 
 The wrapper enables the generic rules except the spelling-based `no-shape-in-symbol-names` rule, which is intentionally available only in the canonical source and is not enabled by this package.
 

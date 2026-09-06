@@ -5,12 +5,8 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const repository = fileURLToPath(new URL("..", import.meta.url));
-const packageTarball = execFileSync("npm", ["pack", "--silent"], {
-  cwd: repository,
-  encoding: "utf8",
-}).trim().split(/\r?\n/).at(-1);
-const tarballPath = join(repository, packageTarball);
 const consumer = mkdtempSync(join(tmpdir(), "syzom-typescript-quality-"));
+const tarballPath = join(consumer, "typescript-quality.tgz");
 
 const run = (command, args) => {
   const result = spawnSync(command, args, {
@@ -61,6 +57,10 @@ const negative = (path, content, expectedText) => {
 };
 
 try {
+  execFileSync("pnpm", ["pack", "--out", tarballPath], {
+    cwd: repository,
+    stdio: "pipe",
+  });
   json("package.json", {
     name: "packed-consumer", private: true, type: "module",
     dependencies: {
@@ -74,7 +74,7 @@ try {
       typescript: "7.0.2",
     },
   });
-  expectSuccess("consumer install", run("npm", ["install", "--ignore-scripts", "--no-audit", "--no-fund"]));
+  expectSuccess("consumer install", run("pnpm", ["install", "--ignore-scripts", "--no-frozen-lockfile"]));
   json("tsconfig.json", {
     extends: "@syzom/typescript-quality/tsconfig/base.json",
     include: ["src/**/*.ts"],
@@ -128,6 +128,42 @@ export const answer: number = 42;
   negative("src/type-error.ts", 'export const broken: number = "not a number";\n', "TS2322");
   negative("src/unsafe.ts", "declare const unsafe: any;\nexport const value: string = unsafe;\n", "no-unsafe-assignment");
   negative("src/invalid-boundary.ts", "export function decode(input: unknown): string { return String(input); }\n", "no-unknown-parameters");
+  write("src/assertions-valid.ts", `export const literal = { kind: "ready" } as const;
+export const checked = { kind: "ready" } satisfies { kind: string };
+export function isString(value: unknown): value is string {
+  return typeof value === "string";
+}
+export function exhaustive(value: "ready" | "done"): string {
+  switch (value) {
+    case "ready": return "Ready";
+    case "done": return "Done";
+    default: {
+      const impossible: never = value;
+      return impossible;
+    }
+  }
+}
+`);
+  expectSuccess("Narrowing, const, satisfies and proven never", lint("src/assertions-valid.ts"));
+  for (const expression of ["value as never", "<never>value", "value as Impossible", "value as (Impossible)"]) {
+    negative("src/assert-never.ts", `type Impossible = never;
+export function impossible(value: string): never {
+  // SAFETY: A comment must not bypass the assertion prohibition.
+  return ${expression};
+}
+`, "no-never-type-assertion");
+  }
+  for (const expression of ["value as unknown as string", "(value as unknown) as string", "value as any as string"]) {
+    negative("src/assert-chain.ts", `export function launder(value: number): string {
+  // SAFETY: A comment must not bypass the assertion prohibition.
+  return ${expression};
+}
+`, "no-chained-type-assertions");
+  }
+  negative("src/scattered-typeof.ts", `export function display(value: string | number): string {
+  return typeof value === "string" ? value : String(value);
+}
+`, "no-runtime-typeof");
   write("src/complexity.ts", `export function tooComplex(value: number): number {
   let result = value;
 ${Array.from({ length: 20 }, (_, index) => `  if (result > ${index}) { result -= 1; }`).join("\n")}
@@ -167,5 +203,4 @@ export const program = Effect.fail<unknown>("failure");
   console.log("packed consumer validation passed");
 } finally {
   rmSync(consumer, { recursive: true, force: true });
-  rmSync(tarballPath, { force: true });
 }

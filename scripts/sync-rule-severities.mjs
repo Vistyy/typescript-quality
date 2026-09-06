@@ -71,7 +71,7 @@ for (const [path, content] of Object.entries(outputs)) {
       if (error.code === "ENOENT") return "";
       throw error;
     });
-    if (current !== content) throw new Error(`${path} is stale; run npm run sync:rules.`);
+    if (current !== content) throw new Error(`${path} is stale; run pnpm sync:rules.`);
   } else {
     await writeFile(url, content);
   }

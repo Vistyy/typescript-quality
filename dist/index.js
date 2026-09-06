@@ -1,4 +1,5 @@
 import { eslintCompatPlugin } from "@oxlint/plugins";
+import { noNeverTypeAssertionRule } from "./rules/no-never-type-assertion.js";
 import { noChainedTypeAssertionsRule } from "./upstream/rules/no-chained-type-assertions.js";
 import { noConditionalEmptyObjectSpreadRule } from "./upstream/rules/no-conditional-empty-object-spread.js";
 import { noKnownValueWideningRule } from "./upstream/rules/no-known-value-widening.js";
@@ -21,6 +22,7 @@ export default eslintCompatPlugin({
         "no-conditional-empty-object-spread": noConditionalEmptyObjectSpreadRule,
         "no-known-value-widening": noKnownValueWideningRule,
         "no-module-mocking": noModuleMockingRule,
+        "no-never-type-assertion": noNeverTypeAssertionRule,
         "no-object-parameters": noObjectParametersRule,
         "no-reflect-apply": noReflectApplyRule,
         "no-reflect-get": noReflectGetRule,
