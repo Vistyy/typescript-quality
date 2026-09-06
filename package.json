@@ -1,5 +1,5 @@
 {
-  "name": "@vistyy/typescript-quality",
+  "name": "@syzom/typescript-quality",
   "version": "0.1.0",
   "description": "Pinned shared TypeScript, Biome, Oxlint, anti-slop, and Effect v4 quality configuration",
   "license": "MIT",

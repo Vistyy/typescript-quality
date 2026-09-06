@@ -8,7 +8,7 @@ export default {
   jsPlugins: [
     {
       name: "anti-slop",
-      specifier: "@vistyy/typescript-quality/anti-slop"
+      specifier: "@syzom/typescript-quality/anti-slop"
     }
   ],
   rules: {
@@ -21,6 +21,9 @@ export default {
     "typescript/no-unsafe-return": "error",
     "typescript/only-throw-error": "error",
     "typescript/strict-boolean-expressions": "error",
+    "typescript/switch-exhaustiveness-check": ["error", {
+      considerDefaultExhaustiveForUnions: false
+    }],
     "anti-slop/no-chained-type-assertions": "error",
     "anti-slop/no-conditional-empty-object-spread": "error",
     "anti-slop/no-known-value-widening": "error",

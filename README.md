@@ -1,4 +1,4 @@
-# @vistyy/typescript-quality
+# @syzom/typescript-quality
 
 This package is a pinned shared quality baseline for strict TypeScript and Effect v4 projects.
 
@@ -21,13 +21,12 @@ The package's `peerDependencies` express the toolchain contract, while `@oxlint/
 
 ## Installation
 
-The initial npm release is pending maintainer account setup.
-The following installation commands apply after that release is published.
+For the first release, complete the [publishing setup](#publishing) before using the consumer installation commands below.
 Install the package and the exact tools as development dependencies.
 
 ```sh
 npm install --save-dev --save-exact \
-  @vistyy/typescript-quality@0.1.0 \
+  @syzom/typescript-quality@0.1.0 \
   @biomejs/biome@2.5.12 \
   oxlint@1.81.0 \
   oxlint-tsgolint@7.0.2001 \
@@ -50,7 +49,7 @@ Extend the shared Biome configuration from `biome.json`.
 ```json
 {
   "$schema": "https://biomejs.dev/schemas/2.5.12/schema.json",
-  "extends": ["@vistyy/typescript-quality/biome"],
+  "extends": ["@syzom/typescript-quality/biome"],
   "files": {
     "includes": ["**", "!!dist/**", "!!coverage/**"]
   }
@@ -61,7 +60,7 @@ Import the shared Oxlint configuration from `oxlint.config.ts`.
 
 ```ts
 import { defineConfig } from "oxlint";
-import baseConfig from "@vistyy/typescript-quality/oxlint";
+import baseConfig from "@syzom/typescript-quality/oxlint";
 
 export default defineConfig({
   ...baseConfig,
@@ -71,11 +70,11 @@ export default defineConfig({
 
 Spread the imported config at the root rather than only putting it in `extends`, because Oxlint's execution options are root-owned.
 This carries full type-checking and blocking warning policy into the consuming project.
-Use `@vistyy/typescript-quality/oxlint/effect` instead for an Effect project.
+Use `@syzom/typescript-quality/oxlint/effect` instead for an Effect project.
 
 ```ts
 import { defineConfig } from "oxlint";
-import effectConfig from "@vistyy/typescript-quality/oxlint/effect";
+import effectConfig from "@syzom/typescript-quality/oxlint/effect";
 
 export default defineConfig({
   ...effectConfig,
@@ -87,12 +86,12 @@ Extend the strict compiler baseline from `tsconfig.json`.
 
 ```json
 {
-  "extends": "@vistyy/typescript-quality/tsconfig/base.json",
+  "extends": "@syzom/typescript-quality/tsconfig/base.json",
   "include": ["src/**/*.ts", "test/**/*.ts"]
 }
 ```
 
-Effect projects may extend `@vistyy/typescript-quality/tsconfig/effect.json` when they use the Effect language-service integration.
+Effect projects may extend `@syzom/typescript-quality/tsconfig/effect.json` when they use the Effect language-service integration.
 
 The Effect language-service diagnostics and the Effect Oxlint preset should not both report the same diagnostics in one check.
 
@@ -106,7 +105,8 @@ Biome owns formatting, recommended correctness rules, explicit `noExplicitAny`, 
 
 There is no file-length limit.
 
-Oxlint owns type-aware TypeScript rules for floating promises, unsafe values, promise misuse, strict boolean expressions, and thrown values.
+Oxlint owns type-aware TypeScript rules for floating promises, unsafe values, promise misuse, strict boolean expressions, thrown values, and exhaustive union switches.
+`typescript/switch-exhaustiveness-check` requires explicit union cases even when a `default` clause exists.
 
 The vendored anti-slop wrapper owns explicit evidence rules for unknown inputs and outputs, unsafe dictionaries, widening and assertions, reflection, runtime type checks, object parameters, conditional empty spreads, module mocking, and chained assertions.
 
@@ -114,6 +114,7 @@ The spelling-based `no-shape-in-symbol-names` rule is intentionally not enabled.
 
 The Effect preset enables the pinned upstream `recommended` rule set, with every selected Effect rule promoted to an error.
 This includes correctness, Effect-native API, antipattern, and style diagnostics; narrow project exceptions remain available.
+It additionally enables `effecttsgo/unsafe-effect-type-assertion` and `effecttsgo/any-unknown-in-error-context` as errors to protect typed error and requirements channels.
 The name-based `no-service-constructor-imports` rule is not enabled by either preset.
 Its separate `anti-slop/effect` plugin export is available only for explicit project opt-in.
 
@@ -190,19 +191,19 @@ Expect Effect v4 release-candidate diagnostics to change as the release candidat
 
 ## Package exports
 
-`@vistyy/typescript-quality/biome` exports the universal Biome configuration.
+`@syzom/typescript-quality/biome` exports the universal Biome configuration.
 
-`@vistyy/typescript-quality/oxlint` exports the universal Oxlint configuration.
+`@syzom/typescript-quality/oxlint` exports the universal Oxlint configuration.
 
-`@vistyy/typescript-quality/oxlint/effect` exports the separate Effect Oxlint configuration.
+`@syzom/typescript-quality/oxlint/effect` exports the separate Effect Oxlint configuration.
 
-`@vistyy/typescript-quality/tsconfig/base.json` exports the strict universal TypeScript configuration.
+`@syzom/typescript-quality/tsconfig/base.json` exports the strict universal TypeScript configuration.
 
-`@vistyy/typescript-quality/tsconfig/effect.json` exports the Effect language-service TypeScript configuration.
+`@syzom/typescript-quality/tsconfig/effect.json` exports the Effect language-service TypeScript configuration.
 
-`@vistyy/typescript-quality/anti-slop` exports the default anti-slop plugin.
+`@syzom/typescript-quality/anti-slop` exports the default anti-slop plugin.
 
-`@vistyy/typescript-quality/anti-slop/effect` exports the opt-in Effect anti-slop plugin.
+`@syzom/typescript-quality/anti-slop/effect` exports the opt-in Effect anti-slop plugin.
 
 ## Verification
 
@@ -211,17 +212,18 @@ Expect Effect v4 release-candidate diagnostics to change as the release candidat
 The check asserts named diagnostics and nonzero exit codes for ordinary TypeScript errors, cognitive complexity, unsafe type-aware values, floating or unhandled Effects, and invalid boundary parameters.
 It exercises root configuration without CLI flags that could conceal missing type-check policy.
 The check also verifies an allowed type predicate, a valid Effect program, and a pure factory import whose name starts with `make`.
+It rejects incomplete union switches even with a default case, unsafe Effect channel assertions, and unknown Effect error channels.
 
 Disposable consumers and their processes are removed when the check exits.
 
 ## Publishing
 
 The GitHub repository is `Vistyy/typescript-quality`.
-The initial npm publication requires an authenticated maintainer who owns the npm scope; a matching GitHub username does not establish that ownership.
-After confirming the scope and enabling npm two-factor authentication, run `npm login`, `npm ci`, `npm run check`, and `npm publish --access public` for the first release.
-Remove the pending-publication notice above when publishing that release.
+The npm package is `@syzom/typescript-quality`, owned through the npm account `syzom`; the GitHub owner remains `Vistyy`.
+For the first release, enable npm two-factor authentication, run `npm login`, confirm `npm whoami` reports `syzom`, then run `npm ci`, `npm run check`, and `npm publish --access public`.
 
 Once the package exists, configure its npm **Trusted Publisher** settings with GitHub owner `Vistyy`, repository `typescript-quality`, and workflow filename `publish.yml`.
+Allow direct `npm publish` and leave the environment field blank for the existing workflow.
 No npm token belongs in GitHub secrets for this workflow.
 See [npm's trusted-publishing documentation](https://docs.npmjs.com/trusted-publishers/) for the account-side setup.
 

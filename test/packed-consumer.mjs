@@ -10,7 +10,7 @@ const packageTarball = execFileSync("npm", ["pack", "--silent"], {
   encoding: "utf8",
 }).trim().split(/\r?\n/).at(-1);
 const tarballPath = join(repository, packageTarball);
-const consumer = mkdtempSync(join(tmpdir(), "vistyy-typescript-quality-"));
+const consumer = mkdtempSync(join(tmpdir(), "syzom-typescript-quality-"));
 
 const run = (command, args) => {
   const result = spawnSync(command, args, {
@@ -40,7 +40,7 @@ const lint = (path) => run("node_modules/.bin/oxlint", [
   "--config", "oxlint.config.ts", "--report-unused-disable-directives", path,
 ]);
 const configure = (preset) => write("oxlint.config.ts", `import { defineConfig } from "oxlint";
-import config from "@vistyy/typescript-quality/oxlint${preset}";
+import config from "@syzom/typescript-quality/oxlint${preset}";
 export default defineConfig({ ...config });
 `);
 const negative = (path, content, expectedText) => {
@@ -54,7 +54,7 @@ try {
   json("package.json", {
     name: "packed-consumer", private: true, type: "module",
     dependencies: {
-      "@vistyy/typescript-quality": `file:${tarballPath}`,
+      "@syzom/typescript-quality": `file:${tarballPath}`,
       "@biomejs/biome": "2.5.12",
       "@effect/tsgo": "0.41.0",
       "@oxlint/plugins": "1.81.0",
@@ -66,10 +66,10 @@ try {
   });
   expectSuccess("consumer install", run("npm", ["install", "--ignore-scripts", "--no-audit", "--no-fund"]));
   json("tsconfig.json", {
-    extends: "@vistyy/typescript-quality/tsconfig/base.json",
+    extends: "@syzom/typescript-quality/tsconfig/base.json",
     include: ["src/**/*.ts"],
   });
-  json("biome.json", { extends: ["@vistyy/typescript-quality/biome"] });
+  json("biome.json", { extends: ["@syzom/typescript-quality/biome"] });
   mkdirSync(join(consumer, "src"));
   configure("");
   write("src/valid.ts", `export function isNull(value: unknown): value is null {
@@ -85,6 +85,21 @@ export const answer: number = 42;
 `);
   expectSuccess("Biome valid example", run("node_modules/.bin/biome", ["check", "--error-on-warnings", "src/valid.ts"]));
   expectSuccess("Oxlint valid example", lint("src/valid.ts"));
+  write("src/exhaustive.ts", `export function label(value: "a" | "b"): string {
+  switch (value) {
+    case "a": return "A";
+    case "b": return "B";
+  }
+}
+`);
+  expectSuccess("Exhaustive union switch", lint("src/exhaustive.ts"));
+  negative("src/incomplete-switch.ts", `export function label(value: "a" | "b"): string {
+  switch (value) {
+    case "a": return "A";
+    default: return "Other";
+  }
+}
+`, "switch-exhaustiveness-check");
   negative("src/type-error.ts", 'export const broken: number = "not a number";\n', "TS2322");
   negative("src/unsafe.ts", "declare const unsafe: any;\nexport const value: string = unsafe;\n", "no-unsafe-assignment");
   negative("src/invalid-boundary.ts", "export function decode(input: unknown): string { return String(input); }\n", "no-unknown-parameters");
@@ -117,6 +132,13 @@ export const bad = () => {
 declare const effect: Effect.Effect<number, "Boom">;
 export const unhandled: () => Effect.Effect<number> = () => effect;
 `, "missing-effect-error");
+  negative("src/effect-unsafe-assertion.ts", `import type * as Effect from "effect/Effect";
+declare const program: Effect.Effect<number, "Boom">;
+export const hidden = program as Effect.Effect<number>;
+`, "unsafe-effect-type-assertion");
+  negative("src/effect-unknown-error.ts", `import * as Effect from "effect/Effect";
+export const program = Effect.fail<unknown>("failure");
+`, "any-unknown-in-error-context");
   console.log("packed consumer validation passed");
 } finally {
   rmSync(consumer, { recursive: true, force: true });
