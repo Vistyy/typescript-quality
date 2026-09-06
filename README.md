@@ -1,88 +1,54 @@
 # @syzom/typescript-quality
 
-This package is a pinned shared quality baseline for strict TypeScript and Effect v4 projects.
+Shared, pinned Biome, Oxlint, TypeScript, and optional Effect v4 configuration.
+Projects keep ownership of their runtime, source selection, and justified exceptions.
+The toolchain is verified on Node.js 24 on Linux.
 
-The package is a configuration dependency, not a project template.
-
-Project-local configuration owns source selection, runtime and framework assumptions, generated files, and narrowly justified exceptions.
-
-## Supported toolchain
-
-The declared Node.js range is `^20.19.0 || >=22.12.0`.
-The packed-consumer check has been verified on Node.js 24 on Linux; other allowed versions are not yet verified.
-
-The supported versions are `@biomejs/biome@2.5.12`, `oxlint@1.81.0`, `@oxlint/plugins@1.81.0`, `oxlint-tsgolint@7.0.2001`, `typescript@7.0.2`, `@effect/tsgo@0.41.0`, and `effect@4.0.0-rc.112`.
-
-The Effect release candidate is intentional and must not be silently replaced with the earlier beta.
-
-Keep these versions exact in the consuming project's lockfile and dependency manifest.
-
-The package's `peerDependencies` express the toolchain contract, while `@oxlint/plugins@1.81.0` is included because the vendored plugin imports it at runtime.
-
-## Installation
-
-For the first release, complete the [publishing setup](#publishing) before using the consumer installation commands below.
-Install the package and the exact tools as development dependencies.
+## Install
 
 ```sh
 npm install --save-dev --save-exact \
   @syzom/typescript-quality@0.1.0 \
-  @biomejs/biome@2.5.12 \
-  oxlint@1.81.0 \
-  oxlint-tsgolint@7.0.2001 \
+  @biomejs/biome@2.5.12 oxlint@1.81.0 oxlint-tsgolint@7.0.2001 \
   typescript@7.0.2
 ```
 
-Effect projects additionally install the Effect pins.
+For Effect projects, also install:
 
 ```sh
-npm install --save-dev --save-exact @effect/tsgo@0.41.0
 npm install --save-exact effect@4.0.0-rc.112
+npm install --save-dev --save-exact @effect/tsgo@0.41.0
 ```
 
-Use a package manager lockfile and run installation in CI with its frozen-lockfile mode.
+Keep the compatible versions pinned together and commit the package-manager lockfile.
 
-## Adoption
+## Configure
 
-Extend the shared Biome configuration from `biome.json`.
+`biome.json`:
 
 ```json
 {
-  "$schema": "https://biomejs.dev/schemas/2.5.12/schema.json",
   "extends": ["@syzom/typescript-quality/biome"],
-  "files": {
-    "includes": ["**", "!!dist/**", "!!coverage/**"]
-  }
+  "files": { "includes": ["**", "!!dist/**", "!!coverage/**"] }
 }
 ```
 
-Import the shared Oxlint configuration from `oxlint.config.ts`.
+`oxlint.config.ts`:
 
 ```ts
 import { defineConfig } from "oxlint";
-import baseConfig from "@syzom/typescript-quality/oxlint";
+import config from "@syzom/typescript-quality/oxlint";
 
 export default defineConfig({
-  ...baseConfig,
+  ...config,
   ignorePatterns: ["dist/**", "coverage/**"],
 });
 ```
 
-Spread the imported config at the root rather than only putting it in `extends`, because Oxlint's execution options are root-owned.
-This carries full type-checking and blocking warning policy into the consuming project.
-Use `@syzom/typescript-quality/oxlint/effect` instead for an Effect project.
+For Effect projects, use `@syzom/typescript-quality/oxlint/effect` instead.
+Spread the configuration at the root: putting it only in `extends` does not carry Oxlint's root-owned execution options.
 
-```ts
-import { defineConfig } from "oxlint";
-import effectConfig from "@syzom/typescript-quality/oxlint/effect";
-
-export default defineConfig({
-  ...effectConfig,
-  ignorePatterns: ["dist/**", "coverage/**"],
-});
-```
-
-Extend the strict compiler baseline from `tsconfig.json`.
+`tsconfig.json`:
 
 ```json
 {
@@ -91,152 +57,41 @@ Extend the strict compiler baseline from `tsconfig.json`.
 }
 ```
 
-Effect projects may extend `@syzom/typescript-quality/tsconfig/effect.json` when they use the Effect language-service integration.
+Adjust source and generated-file selection to the project.
+For optional Effect editor integration, follow the [Effect TypeScript language-service documentation](https://github.com/Effect-TS/tsgo).
 
-The Effect language-service diagnostics and the Effect Oxlint preset should not both report the same diagnostics in one check.
+## Check
 
-When using the Effect Oxlint preset as the CI owner, set the language-service plugin's `diagnostics` option to `false` in the local tsconfig if the editor would otherwise display duplicates.
-
-## What the defaults enforce
-
-Biome owns formatting, recommended correctness rules, explicit `noExplicitAny`, and cognitive complexity.
-
-`noExcessiveCognitiveComplexity` is an error with `maxAllowedComplexity: 15`.
-
-There is no file-length limit.
-
-Oxlint owns type-aware TypeScript rules for floating promises, unsafe values, promise misuse, strict boolean expressions, thrown values, and exhaustive union switches.
-`typescript/switch-exhaustiveness-check` requires explicit union cases even when a `default` clause exists.
-
-The vendored anti-slop wrapper owns explicit evidence rules for unknown inputs and outputs, unsafe dictionaries, widening and assertions, reflection, runtime type checks, object parameters, conditional empty spreads, module mocking, and chained assertions.
-
-The spelling-based `no-shape-in-symbol-names` rule is intentionally not enabled.
-
-The Effect preset enables the pinned upstream `recommended` rule set, with every selected Effect rule promoted to an error.
-This includes correctness, Effect-native API, antipattern, and style diagnostics; narrow project exceptions remain available.
-It additionally enables `effecttsgo/unsafe-effect-type-assertion` and `effecttsgo/any-unknown-in-error-context` as errors to protect typed error and requirements channels.
-The name-based `no-service-constructor-imports` rule is not enabled by either preset.
-Its separate `anti-slop/effect` plugin export is available only for explicit project opt-in.
-
-The `no-unknown-parameters` rule remains enabled, with the upstream rule's narrow exceptions for a `cause` parameter and the subject of a type predicate.
-
-Decode external `unknown` data at the boundary and pass the decoded domain type inward.
-
-Do not suppress a rule merely to satisfy the checker.
-
-## Local checks and CI
-
-Use the same blocking commands locally and in CI.
-
-For a non-Effect project, run Biome once and Oxlint's type-aware type-check once.
-
-```sh
-npx biome check --error-on-warnings .
-npx oxlint --config oxlint.config.ts --report-unused-disable-directives .
-```
-
-Oxlint's `typeCheck: true` option is the full TypeScript type-check owner for this baseline, so do not add a redundant `tsc --noEmit` invocation to the same check.
-
-For an Effect project, patch Oxlint once after installation and run the Effect preset instead.
+After each installation in an Effect project, patch the compatible Oxlint integration:
 
 ```sh
 npx effect-tsgo patch --oxlint --no-typescript
+```
+
+Use these same checks locally and in CI:
+
+```sh
 npx biome check --error-on-warnings .
 npx oxlint --config oxlint.config.ts --report-unused-disable-directives .
 ```
 
-The patch command validates the compatible Oxlint and `oxlint-tsgolint` versions.
+Oxlint performs the full TypeScript type-check, so a separate `tsc --noEmit` pass is unnecessary for the same source set.
+Keep the warning guards: inherited rules can retain warning severity even though these commands make them blocking.
 
-Use `effect-tsgo` as the editor's sole TypeScript language server when the language-service integration is enabled.
+## Policy and exceptions
 
-Do not assume that an executable named `tsgo` exists.
+- Biome owns formatting, recommended rules, explicit `any` rejection, and cognitive complexity capped at **15**.
+- Oxlint owns type-aware safety checks and exhaustive union switches, including switches with a `default` case.
+- The Effect preset makes the pinned upstream recommended rules errors and adds unsafe channel-assertion and `any`/`unknown` error/requirements-channel checks.
+- Vendored anti-slop rules reject selected low-evidence patterns; [provenance and update instructions](vendor/anti-slop/PROVENANCE.md) identify their upstream source.
+- There is no file-length limit, blanket constructor-name ban, or `Shape`-name ban.
 
-Do not run stock `tsc`, `effect-tsgo diagnostics`, and Oxlint type-check together for the same source set.
+Use narrow local overrides or explained inline exceptions for real boundaries rather than disguising code to evade a rule.
+Do not enable both editor and lint integrations to report the same Effect diagnostics.
 
-The repository's CI entry point should be a project script that invokes the applicable commands above.
+## Maintaining this package
 
-## Local overrides and exceptions
-
-Add file selection and framework-specific rules in the consuming repository rather than changing this package.
-
-Use Biome `overrides` for generated or syntax-specific files.
-
-Use Oxlint `overrides` for a narrowly scoped boundary such as `src/decoders/**/*.ts`.
-
-A boundary exception must name the external input, the decoder or validator, and the invariant established before the value crosses into domain code.
-
-Prefer a typed decoder function that accepts `unknown` and returns a decoded result over a broad suppression.
-
-The type-predicate exception is valid only for the parameter being narrowed.
-
-Keep `cause` parameters limited to error-context enrichment.
-
-Use the narrowest clear exception, whether a file override or an inline disable, and retain the unused-disable check so stale exceptions fail.
-
-Do not automatically enable `no-shape-in-symbol-names` or `no-service-constructor-imports` for a project that has not adopted those scopes.
-
-## Upgrades
-
-Upgrade a compatible set of pins together in a branch.
-
-Read the upstream release notes and compatibility table before changing a pin.
-
-For an anti-slop update, copy canonical production source from a reviewed upstream commit into `vendor/anti-slop/upstream`, preserve its license, and update `vendor/anti-slop/PROVENANCE.md`.
-
-Run the packed-consumer check and the negative enforcement examples before committing an upgrade.
-
-Re-run `effect-tsgo patch --oxlint --no-typescript` after changing `@effect/tsgo`, Oxlint, or `oxlint-tsgolint`.
-
-Expect Effect v4 release-candidate diagnostics to change as the release candidate evolves.
-
-## Package exports
-
-`@syzom/typescript-quality/biome` exports the universal Biome configuration.
-
-`@syzom/typescript-quality/oxlint` exports the universal Oxlint configuration.
-
-`@syzom/typescript-quality/oxlint/effect` exports the separate Effect Oxlint configuration.
-
-`@syzom/typescript-quality/tsconfig/base.json` exports the strict universal TypeScript configuration.
-
-`@syzom/typescript-quality/tsconfig/effect.json` exports the Effect language-service TypeScript configuration.
-
-`@syzom/typescript-quality/anti-slop` exports the default anti-slop plugin.
-
-`@syzom/typescript-quality/anti-slop/effect` exports the opt-in Effect anti-slop plugin.
-
-## Verification
-
-`npm run check` packs this repository, installs the packed tarball into disposable external consumers, and runs valid and invalid examples through the real installed tools.
-
-The check asserts named diagnostics and nonzero exit codes for ordinary TypeScript errors, cognitive complexity, unsafe type-aware values, floating or unhandled Effects, and invalid boundary parameters.
-It exercises root configuration without CLI flags that could conceal missing type-check policy.
-The check also verifies an allowed type predicate, a valid Effect program, and a pure factory import whose name starts with `make`.
-It rejects incomplete union switches even with a default case, unsafe Effect channel assertions, and unknown Effect error channels.
-
-Disposable consumers and their processes are removed when the check exits.
-
-## Publishing
-
-The GitHub repository is `Vistyy/typescript-quality`.
-The npm package is `@syzom/typescript-quality`, owned through the npm account `syzom`; the GitHub owner remains `Vistyy`.
-For the first release, enable npm two-factor authentication, run `npm login`, confirm `npm whoami` reports `syzom`, then run `npm ci`, `npm run check`, and `npm publish --access public`.
-
-Once the package exists, configure its npm **Trusted Publisher** settings with GitHub owner `Vistyy`, repository `typescript-quality`, and workflow filename `publish.yml`.
-Allow direct `npm publish` and leave the environment field blank for the existing workflow.
-No npm token belongs in GitHub secrets for this workflow.
-See [npm's trusted-publishing documentation](https://docs.npmjs.com/trusted-publishers/) for the account-side setup.
-
-For subsequent releases, update the package version and lockfile together, commit the change, and push a matching `v<version>` tag.
-The publish workflow checks the exact tagged version, runs the packed-consumer check, and publishes from a GitHub-hosted Node.js 24 runner using OIDC.
-A failed or uncertain publication should be checked against the npm registry before retrying.
-
-## Limitations
-
-Oxlint JavaScript plugins are an experimental integration and the vendored anti-slop rules use lexical analysis rather than cross-file TypeScript inference.
-
-Type-aware checks require installed dependencies, a discoverable tsconfig, and enough memory for the project graph.
-
-The package does not prescribe runtime, bundler, test framework, source directories, generated-file policy, or deployment commands.
-
-Those concerns remain project-local by design.
+Run `npm ci` and `npm run check` before releasing.
+The check builds and packs the package, installs it into a disposable consumer, and verifies passing examples and intentional rule violations.
+To release, update the version and lockfile, commit and push, then push the matching `v<version>` tag.
+GitHub Actions verifies that tag and publishes through npm trusted publishing.
