@@ -1,6 +1,7 @@
 import { defineRule } from "@oxlint/plugins";
 import { classifyUnsafeDictionaryValue, classifyWideningTarget, createTypeEnvironment, isKnownEvidenceExpression, } from "../shared/dictionary-types.js";
 import { containsUnknownType, functionParameterBindingName, functionParameterTypeAnnotation, } from "../shared/function-parameters.js";
+import { resolveVariable } from "../shared/scope.js";
 function unwrapExpression(expression) {
     let current = expression;
     while (current.type === "ParenthesizedExpression" ||
@@ -11,16 +12,6 @@ function unwrapExpression(expression) {
         current = current.expression;
     }
     return current;
-}
-function resolveVariable(sourceCode, identifier) {
-    let scope = sourceCode.getScope(identifier);
-    while (scope !== null) {
-        const variable = scope.set.get(identifier.name);
-        if (variable !== undefined)
-            return variable;
-        scope = scope.upper;
-    }
-    return null;
 }
 function variableDeclarator(variable) {
     if (variable.defs.length !== 1)

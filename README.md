@@ -2,14 +2,14 @@
 
 Shared, pinned Biome, Oxlint, TypeScript, and optional Effect v4 configuration.
 Projects keep ownership of their runtime, source selection, and justified exceptions.
-The toolchain is verified on Node.js 24 on Linux.
+The toolchain requires Node.js 22.12 or newer and is verified on Node.js 22 and 24 on Linux.
 
 ## Install
 
 ```sh
 pnpm add --save-dev --save-exact \
-  @syzom/typescript-quality@0.2.0 \
-  @biomejs/biome@2.5.12 oxlint@1.81.0 oxlint-tsgolint@7.0.2001 \
+  @syzom/typescript-quality@0.3.0 \
+  @biomejs/biome@2.5.12 oxlint@1.82.0 oxlint-tsgolint@7.0.2001 \
   typescript@7.0.2
 ```
 
@@ -17,7 +17,7 @@ For Effect projects, also install:
 
 ```sh
 pnpm add --save-exact effect@4.0.0-rc.112
-pnpm add --save-dev --save-exact @effect/tsgo@0.41.0
+pnpm add --save-dev --save-exact @effect/tsgo@0.45.0
 ```
 
 Keep the compatible versions pinned together and commit the package-manager lockfile.
@@ -85,8 +85,10 @@ The warning guards remain a safeguard for other tool diagnostics.
 - Oxlint owns type-aware safety checks and exhaustive union switches, including switches with a `default` case.
 - Assertions to `never` (including locally resolved aliases) and chained assertions are errors even when accompanied by a safety comment.
 - Runtime `typeof` is allowed in explicit type guards and existence probes; other runtime uses remain errors.
-- The Effect preset makes the pinned upstream recommended rules errors and adds unsafe channel-assertion and `any`/`unknown` error/requirements-channel checks.
-- Vendored anti-slop rules reject selected low-evidence patterns; [provenance and update instructions](vendor/anti-slop/PROVENANCE.md) identify their upstream source.
+- The generic preset rejects repeated eager array passes, copying reducer accumulators, accumulating spreads, and unreadable statement spacing in addition to its evidence and boundary rules.
+- The Effect preset makes the pinned upstream recommended rules errors, adds unsafe channel-assertion and `any`/`unknown` error/requirements-channel checks, and enables the vendored Effect tag, Match, and service-constructor rules.
+- Vendored anti-slop rules reject selected low-evidence patterns; [provenance and update instructions](vendor/anti-slop/PROVENANCE.md) identify their exact upstream source and nested license obligations.
+- New rules are blocking by default. Fix owned code where practical and use narrow explained exceptions for genuine boundaries or conflicting architecture; repeated exceptions require reevaluating the shared rule.
 - There is no file-length limit, blanket constructor-name ban, or `Shape`-name ban.
 
 Use narrow local overrides or explained inline exceptions for real boundaries rather than disguising code to evade a rule.
@@ -95,6 +97,7 @@ Do not enable both editor and lint integrations to report the same Effect diagno
 ## Maintaining this package
 
 Rule selection lives in `biome/policy.json` and `oxlint/policy.mjs`.
+The root `biome.json`, `oxlint.config.mjs`, and `tsconfig.json` apply the published policy to package-owned configuration, scripts, and tests. Generated output and copied upstream source stay under their generator, compiler, provenance, and packed-consumer checks instead of being reformatted or rewritten as locally owned code.
 After changing compatible tool pins or selection policy, run `pnpm sync:rules` to regenerate severity overlays from the installed pinned tools.
 Do not hand-edit `biome/base.json` or `oxlint/inherited-errors.mjs`.
 Use the pnpm version pinned in `packageManager`.

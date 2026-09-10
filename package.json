@@ -1,6 +1,6 @@
 {
   "name": "@syzom/typescript-quality",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Pinned shared TypeScript, Biome, Oxlint, anti-slop, and Effect v4 quality configuration",
   "license": "MIT",
   "repository": {
@@ -47,18 +47,20 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "prepack": "pnpm run build",
-    "sync:rules": "pnpm run build && node scripts/sync-rule-severities.mjs",
-    "check:rules": "pnpm run build && node scripts/sync-rule-severities.mjs --check",
-    "check": "pnpm run check:rules && node test/packed-consumer.mjs"
+    "quality:prepare": "pnpm run build && effect-tsgo patch --oxlint --no-typescript",
+    "quality": "pnpm run quality:prepare && biome check --error-on-warnings . && oxlint --config oxlint.config.mjs .",
+    "sync:rules": "pnpm run build && tsx scripts/sync-rule-severities.ts",
+    "check:rules": "pnpm run build && tsx scripts/sync-rule-severities.ts --check",
+    "check": "pnpm run quality && pnpm run check:rules && tsx test/packed-consumer.ts"
   },
   "dependencies": {
-    "@oxlint/plugins": "1.81.0"
+    "@oxlint/plugins": "1.82.0"
   },
   "peerDependencies": {
     "@biomejs/biome": "2.5.12",
-    "@effect/tsgo": "0.41.0",
+    "@effect/tsgo": "0.45.0",
     "effect": "4.0.0-rc.112",
-    "oxlint": "1.81.0",
+    "oxlint": "1.82.0",
     "oxlint-tsgolint": "7.0.2001",
     "typescript": "7.0.2"
   },
@@ -72,13 +74,15 @@
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.12",
-    "@effect/tsgo": "0.41.0",
+    "@effect/tsgo": "0.45.0",
+    "@types/node": "22.20.2",
     "effect": "4.0.0-rc.112",
-    "oxlint": "1.81.0",
+    "oxlint": "1.82.0",
     "oxlint-tsgolint": "7.0.2001",
+    "tsx": "4.23.13",
     "typescript": "7.0.2"
   },
   "engines": {
-    "node": "^20.19.0 || >=22.12.0"
+    "node": ">=22.12.0"
   }
 }

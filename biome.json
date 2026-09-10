@@ -1,0 +1,14 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.5.12/schema.json",
+  "extends": ["./biome/base.json"],
+  "files": {
+    "includes": [
+      "**",
+      "!!dist",
+      "!!vendor/anti-slop/upstream",
+      "!!biome/base.json",
+      "!!oxlint/inherited-errors.mjs",
+      "!!pnpm-lock.yaml"
+    ]
+  }
+}
