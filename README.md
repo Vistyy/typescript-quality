@@ -2,7 +2,7 @@
 
 Shared, pinned Biome, Oxlint, TypeScript, and optional Effect v4 configuration.
 Projects keep ownership of their runtime, source selection, and justified exceptions.
-The toolchain requires Node.js 22.12 or newer and is verified on Node.js 22 and 24 on Linux.
+The toolchain requires Node.js 22.13 or newer and is verified on Node.js 22 and 24 on Linux.
 
 ## Install
 
@@ -101,7 +101,7 @@ The root `biome.json`, `oxlint.config.mjs`, and `tsconfig.json` apply the publis
 After changing compatible tool pins or selection policy, run `pnpm sync:rules` to regenerate severity overlays from the installed pinned tools.
 Do not hand-edit `biome/base.json` or `oxlint/inherited-errors.mjs`.
 Use the pnpm version pinned in `packageManager`.
-Run `pnpm install --frozen-lockfile` and `pnpm check` before releasing; the check also rejects stale generated presets.
+Run `pnpm install --frozen-lockfile` and `pnpm check` before releasing; the check also rejects stale generated presets and drift from the recorded vendored snapshot.
 The check builds and packs the package, installs it into a disposable consumer, and verifies passing examples and intentional rule violations.
 To release, update the version and lockfile, commit and push, then push the matching `v<version>` tag.
 GitHub Actions verifies that tag, installs and packs with pnpm, and publishes the verified tarball through npm trusted publishing.

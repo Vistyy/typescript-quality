@@ -1,6 +1,7 @@
 {
   "extends": "./tsconfig/base.json",
   "compilerOptions": {
+    "allowImportingTsExtensions": true,
     "allowJs": true,
     "checkJs": true,
     "isolatedModules": true,
@@ -12,6 +13,13 @@
     "types": ["node"],
     "verbatimModuleSyntax": true
   },
-  "include": ["oxlint.config.mjs", "oxlint/**/*.mjs", "scripts/**/*.ts", "test/**/*.ts"],
-  "exclude": ["dist", "vendor/anti-slop"]
+  "include": [
+    "oxlint.config.mjs",
+    "oxlint/**/*.mjs",
+    "scripts/**/*.ts",
+    "test/**/*.ts",
+    "vendor/anti-slop/index.ts",
+    "vendor/anti-slop/rules/**/*.ts"
+  ],
+  "exclude": ["dist", "vendor/anti-slop/upstream"]
 }

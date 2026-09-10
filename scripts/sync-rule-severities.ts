@@ -2,6 +2,7 @@ import { execFile } from "node:child_process";
 import { readFile, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
+import { recommended as effectRecommended } from "@effect/tsgo/oxlint-presets";
 
 interface PackageManifest {
   readonly devDependencies: Readonly<Record<string, string>>;
@@ -80,10 +81,21 @@ const run = async (command: string, args: string[]): Promise<string> =>
     })
   ).stdout;
 
+const severityOf = (setting: JsonValue): JsonValue | undefined =>
+  Array.isArray(setting) ? setting[0] : setting;
+
 const isWarning = (setting: JsonValue): boolean => {
-  const severity = Array.isArray(setting) ? setting[0] : setting;
+  const severity = severityOf(setting);
 
   return severity === "warn" || severity === 1;
+};
+
+const isError = (setting: JsonValue | undefined): boolean => {
+  if (setting === undefined) return false;
+
+  const severity = severityOf(setting);
+
+  return severity === "deny" || severity === "error" || severity === 2;
 };
 
 const asError = (setting: JsonValue): JsonValue =>
@@ -109,6 +121,25 @@ const inheritedErrors = Object.fromEntries(
     .filter(([, setting]) => isWarning(setting))
     .map(([name, setting]) => [name, asError(setting)]),
 );
+
+const effect = parseOxlintConfiguration(
+  await run(process.execPath, [
+    "node_modules/oxlint/bin/oxlint",
+    "--config",
+    "oxlint/effect.mjs",
+    "--print-config",
+  ]),
+);
+
+const recommendedEffectRules = Object.keys(effectRecommended.rules ?? {});
+
+const nonErrorEffectRules = recommendedEffectRules.filter((rule) => !isError(effect.rules[rule]));
+
+if (nonErrorEffectRules.length > 0) {
+  throw new Error(
+    `Effect recommended rules must resolve to error severity: ${nonErrorEffectRules.join(", ")}`,
+  );
+}
 
 const biome = await readJson<BiomePolicy>("biome/policy.json");
 
@@ -204,5 +235,5 @@ for (const [path, content] of Object.entries(outputs)) {
 }
 
 console.log(
-  `Severity overlays: ${Object.keys(inheritedErrors).length} Oxlint warnings, ${biomePromotions} recommended Biome warnings.`,
+  `Severity overlays: ${Object.keys(inheritedErrors).length} Oxlint warnings, ${biomePromotions} recommended Biome warnings; ${recommendedEffectRules.length} Effect recommended rules are errors.`,
 );

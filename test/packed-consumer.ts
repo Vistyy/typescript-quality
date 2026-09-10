@@ -81,6 +81,9 @@ const json = (path: string, value: JsonValue): void =>
 const lint = (path: string): CommandResult =>
   run("node_modules/.bin/oxlint", ["--config", "oxlint.config.ts", path]);
 
+const lintJson = (path: string): CommandResult =>
+  run("node_modules/.bin/oxlint", ["--config", "oxlint.config.ts", "--format", "json", path]);
+
 const configure = (preset: "" | "/effect"): void =>
   write(
     "oxlint.config.ts",
@@ -92,7 +95,7 @@ export default defineConfig({ ...config });
 
 const negative = (path: string, content: string, expectedText: string): void => {
   write(path, content);
-  expectFailure(path, lint(path), expectedText);
+  expectErrorDiagnostic(path, lintJson(path), expectedText);
   // Full type-checking can inspect all files in the tsconfig, not just the lint target.
   rmSync(join(consumer, path));
 };
@@ -337,10 +340,24 @@ ${Array.from({ length: 20 }, (_, index) => `  if (result > ${index}) { result -=
   rmSync(join(consumer, "src/complexity.ts"));
 
   configure("/effect");
+  write(
+    "src/plugin-imports.ts",
+    `import genericPlugin from "@syzom/typescript-quality/anti-slop";
+import canonicalPlugin from "@syzom/typescript-quality/anti-slop/canonical";
+import effectPlugin from "@syzom/typescript-quality/anti-slop/effect";
+
+export const plugins = [genericPlugin, canonicalPlugin, effectPlugin] as const;
+`,
+  );
   expectSuccess(
     "Effect Oxlint patch",
     run("node_modules/.bin/effect-tsgo", ["patch", "--oxlint", "--no-typescript"]),
   );
+  expectSuccess(
+    "Strict TypeScript plugin declaration imports",
+    run("node_modules/.bin/tsc", ["--noEmit", "--pretty", "false"]),
+  );
+  expectSuccess("Plugin declaration import quality", lint("src/plugin-imports.ts"));
   write(
     "src/factory.ts",
     "export const counterFrom = (start: number): number => start;\nexport const makeCounter = counterFrom;\n",

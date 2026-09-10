@@ -2,7 +2,7 @@
 
 The canonical anti-slop production source in `upstream/` is copied without modification from [`dmmulroy/anti-slop`](https://github.com/dmmulroy/anti-slop) commit `c44ef22ca116d0ba62a3ff663a0bd13a3f3fa40b`. That revision is newer than the latest `v0.1.2` tag while upstream's package metadata still reports `0.1.2`; the immutable commit, not that version, identifies this snapshot.
 
-The upstream `LICENSE` is retained beside the vendored source. The nested ESLint Stylistic source under `upstream/vendor/eslint-stylistic/` retains its own `LICENSE` and `UPSTREAM.md`; both must remain in every redistributed package copy.
+The upstream `LICENSE` is retained beside the vendored source. The nested ESLint Stylistic source under `upstream/vendor/eslint-stylistic/` retains its own `LICENSE` and `UPSTREAM.md`; both must remain in every redistributed package copy. The checked-in `upstream.snapshot.json` records the complete copied file set and SHA-256 digests; `pnpm check:vendor` verifies it offline.
 
 The package entrypoint is a small local policy wrapper around that source. The local `rules/` directory adds `no-never-type-assertion` without modifying the pinned upstream source. This rule resolves local type aliases using the vendored helper; it does not claim type-checker-level resolution of imported or computed types.
 

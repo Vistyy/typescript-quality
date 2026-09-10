@@ -29,12 +29,21 @@
     },
     "./tsconfig": "./tsconfig/base.json",
     "./tsconfig/effect": "./tsconfig/effect.json",
-    "./anti-slop": "./dist/index.js",
+    "./anti-slop": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
     "./package.json": "./package.json",
     "./tsconfig/base.json": "./tsconfig/base.json",
     "./tsconfig/effect.json": "./tsconfig/effect.json",
-    "./anti-slop/effect": "./dist/upstream/effect/index.js",
-    "./anti-slop/canonical": "./dist/upstream/index.js",
+    "./anti-slop/effect": {
+      "types": "./dist/upstream/effect/index.d.ts",
+      "default": "./dist/upstream/effect/index.js"
+    },
+    "./anti-slop/canonical": {
+      "types": "./dist/upstream/index.d.ts",
+      "default": "./dist/upstream/index.js"
+    },
     "./oxlint/base.mjs": {
       "types": "./oxlint/base.d.ts",
       "default": "./oxlint/base.mjs"
@@ -51,7 +60,8 @@
     "quality": "pnpm run quality:prepare && biome check --error-on-warnings . && oxlint --config oxlint.config.mjs .",
     "sync:rules": "pnpm run build && tsx scripts/sync-rule-severities.ts",
     "check:rules": "pnpm run build && tsx scripts/sync-rule-severities.ts --check",
-    "check": "pnpm run quality && pnpm run check:rules && tsx test/packed-consumer.ts"
+    "check:vendor": "tsx scripts/check-vendored-snapshot.ts",
+    "check": "pnpm run quality && pnpm run check:rules && pnpm run check:vendor && tsx test/packed-consumer.ts"
   },
   "dependencies": {
     "@oxlint/plugins": "1.82.0"
@@ -83,6 +93,6 @@
     "typescript": "7.0.2"
   },
   "engines": {
-    "node": ">=22.12.0"
+    "node": ">=22.13.0"
   }
 }
