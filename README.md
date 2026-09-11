@@ -97,7 +97,7 @@ The warning guards remain a safeguard for other tool diagnostics.
 - Vendored anti-slop rules reject selected low-evidence patterns; [provenance and update instructions](vendor/anti-slop/PROVENANCE.md) identify their exact upstream source and nested license obligations.
 - The enabled generic and Effect presets intentionally omit the upstream spelling-based `no-shape-in-symbol-names` rule, so they do not ban `Shape` names. The raw `@syzom/typescript-quality/anti-slop/canonical` export exposes the complete upstream plugin for explicit opt-in. Register it under a distinct alias such as `anti-slop-canonical` and select its rules explicitly (for example, `"anti-slop-canonical/no-shape-in-symbol-names": "error"`); its rule map differs from the package's default `anti-slop` wrapper.
 - New rules are blocking by default. Fix owned code where practical and use narrow explained exceptions for genuine boundaries or conflicting architecture; repeated exceptions require reevaluating the shared rule.
-- There is no file-length limit, blanket constructor-name ban, or `Shape`-name ban.
+- There is no file-length limit or blanket constructor-name ban.
 
 Use narrow local overrides or explained inline exceptions for real boundaries rather than disguising code to evade a rule.
 Do not enable both editor and lint integrations to report the same Effect diagnostics.

@@ -1,5 +1,13 @@
 import { execFileSync, spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  realpathSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -78,6 +86,14 @@ if (
 ) {
   throw new Error(
     `@oxlint/plugins must use an exact dependency version, found ${pluginApiVersion ?? "missing"}.`,
+  );
+}
+
+const { oxlint: oxlintVersion } = manifest.peerDependencies;
+
+if (pluginApiVersion !== oxlintVersion) {
+  throw new Error(
+    `@oxlint/plugins ${pluginApiVersion} must match the pinned Oxlint ${oxlintVersion ?? "missing"}.`,
   );
 }
 
@@ -201,7 +217,6 @@ try {
     type: "module",
     dependencies: {
       "@syzom/typescript-quality": `file:${tarballPath}`,
-      "@oxlint/plugins": pluginApiVersion,
       ...toolVersions,
     },
   });
@@ -209,7 +224,7 @@ try {
     "consumer install",
     run("pnpm", ["install", "--ignore-scripts", "--no-frozen-lockfile"]),
   );
-  const installedPackage = join(consumer, "node_modules/@syzom/typescript-quality");
+  const installedPackage = realpathSync(join(consumer, "node_modules/@syzom/typescript-quality"));
 
   const declarationFiles = collectFiles(join(installedPackage, "dist"), ".d.ts");
 
