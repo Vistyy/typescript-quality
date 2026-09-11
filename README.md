@@ -8,7 +8,7 @@ The toolchain requires Node.js 22.18.0 or newer and is verified on Node.js 22 an
 
 ```sh
 pnpm add --save-dev --save-exact \
-  @syzom/typescript-quality@0.3.0 \
+  @syzom/typescript-quality@0.3.1 \
   @biomejs/biome@2.5.12 oxlint@1.82.0 oxlint-tsgolint@7.0.2001 \
   typescript@7.0.2
 ```

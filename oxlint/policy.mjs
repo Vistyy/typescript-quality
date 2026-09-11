@@ -13,6 +13,12 @@ export default {
     },
   ],
   rules: {
+    "typescript/consistent-type-imports": [
+      "error",
+      {
+        disallowTypeAnnotations: true,
+      },
+    ],
     "typescript/no-floating-promises": "error",
     "typescript/no-misused-promises": "error",
     "typescript/no-unnecessary-type-assertion": "error",

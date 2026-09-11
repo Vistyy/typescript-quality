@@ -286,6 +286,38 @@ export const answer: number = 42;
     run("node_modules/.bin/biome", ["check", "--error-on-warnings", "src/valid.ts"]),
   );
   expectSuccess("Oxlint valid example", lint("src/valid.ts"));
+  write(
+    "src/type-import-contract.ts",
+    `export interface RuntimeContract {
+  readonly value: string;
+}
+
+export const runtimeValue = "loaded";
+`,
+  );
+  write(
+    "src/type-import-valid.ts",
+    `import type { RuntimeContract } from "./type-import-contract.js";
+
+export const contract: RuntimeContract = { value: "typed" };
+`,
+  );
+  expectSuccess("Regular import type declaration", lint("src/type-import-valid.ts"));
+  write(
+    "src/dynamic-import-valid.ts",
+    `export async function loadRuntimeValue(): Promise<string> {
+  const runtimeModule = await import("./type-import-contract.js");
+
+  return runtimeModule.runtimeValue;
+}
+`,
+  );
+  expectSuccess("Runtime dynamic import", lint("src/dynamic-import-valid.ts"));
+  negative(
+    "src/inline-type-query.ts",
+    'export type InlineContract = import("./type-import-contract.js").RuntimeContract;\n',
+    "consistent-type-imports",
+  );
   write("src/biome-severity.ts", 'export const node = document.querySelector("div")!;\n');
   expectErrorDiagnostic(
     "Inherited Biome severity",
