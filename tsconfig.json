@@ -13,13 +13,6 @@
     "types": ["node"],
     "verbatimModuleSyntax": true
   },
-  "include": [
-    "oxlint.config.mjs",
-    "oxlint/**/*.mjs",
-    "scripts/**/*.ts",
-    "test/**/*.ts",
-    "vendor/anti-slop/index.ts",
-    "vendor/anti-slop/rules/**/*.ts"
-  ],
+  "include": ["oxlint.config.mjs", "oxlint/**/*.mjs", "scripts/**/*.ts", "test/**/*.ts"],
   "exclude": ["dist", "vendor/anti-slop/upstream"]
 }

@@ -105,7 +105,7 @@ Do not enable both editor and lint integrations to report the same Effect diagno
 ## Maintaining this package
 
 Rule selection lives in `biome/policy.json` and `oxlint/policy.mjs`.
-The root `biome.json`, `oxlint.config.mjs`, and `tsconfig.json` apply the published policy to package-owned configuration, scripts, and tests. Generated output and copied upstream source stay under their generator, compiler, provenance, and packed-consumer checks instead of being reformatted or rewritten as locally owned code.
+The root `biome.json`, `oxlint.config.mjs`, and `tsconfig.json` apply the published policy to package-owned configuration, scripts, and tests. The local anti-slop wrapper and rule are self-linted by Biome and Oxlint, compiled together with their verbatim dependencies by the build's upstream-compatible project, and exercised through the packed-consumer behavior and declaration boundaries; keeping them out of the root TypeScript project prevents their relative imports from pulling exempt upstream source into stricter local compiler settings. Generated output and copied upstream source stay under their generator, compiler, provenance, and packed-consumer checks instead of being reformatted or rewritten as locally owned code.
 After changing compatible tool pins or selection policy, run `pnpm sync:rules` to regenerate severity overlays from the installed pinned tools.
 Do not hand-edit `biome/base.json` or `oxlint/inherited-errors.mjs`.
 Use the pnpm version pinned in `packageManager`.
