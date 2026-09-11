@@ -1,5 +1,5 @@
 import { execFileSync, spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -21,11 +21,65 @@ interface DiagnosticOutput {
   readonly diagnostics: Diagnostic[];
 }
 
+interface PackageManifest {
+  readonly dependencies: Readonly<Record<string, string>>;
+  readonly devDependencies: Readonly<Record<string, string>>;
+  readonly peerDependencies: Readonly<Record<string, string>>;
+}
+
 type JsonScalar = boolean | null | number | string;
 
 type JsonValue = JsonScalar | JsonValue[] | { [key: string]: JsonValue };
 
 const repository = fileURLToPath(new URL("..", import.meta.url));
+
+// SAFETY: This repository-owned manifest is validated below for every required exact, coherent tool pin.
+const manifest = JSON.parse(
+  readFileSync(join(repository, "package.json"), "utf8"),
+) as PackageManifest;
+
+const toolPackages = [
+  "@biomejs/biome",
+  "@effect/tsgo",
+  "effect",
+  "oxlint",
+  "oxlint-tsgolint",
+  "typescript",
+] as const;
+
+const toolVersions = Object.fromEntries(
+  toolPackages.map((name) => {
+    const peerVersion = manifest.peerDependencies[name];
+    const developmentVersion = manifest.devDependencies[name];
+
+    if (
+      peerVersion === undefined ||
+      developmentVersion === undefined ||
+      peerVersion !== developmentVersion
+    ) {
+      throw new Error(
+        `${name} must have identical exact peer/dev pins; found peer=${peerVersion ?? "missing"}, dev=${developmentVersion ?? "missing"}.`,
+      );
+    }
+
+    if (!/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(peerVersion)) {
+      throw new Error(`${name} must use an exact version, found ${peerVersion}.`);
+    }
+
+    return [name, peerVersion];
+  }),
+);
+
+const pluginApiVersion = manifest.dependencies["@oxlint/plugins"];
+
+if (
+  pluginApiVersion === undefined ||
+  !/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(pluginApiVersion)
+) {
+  throw new Error(
+    `@oxlint/plugins must use an exact dependency version, found ${pluginApiVersion ?? "missing"}.`,
+  );
+}
 
 const consumer = mkdtempSync(join(tmpdir(), "syzom-typescript-quality-"));
 
@@ -74,6 +128,19 @@ const expectErrorDiagnostic = (label: string, result: CommandResult, rule: strin
 
 const write = (path: string, content: string): void => writeFileSync(join(consumer, path), content);
 
+const collectFiles = (directory: string, extension: string): string[] => {
+  const files: string[] = [];
+
+  for (const entry of readdirSync(directory, { withFileTypes: true })) {
+    const path = join(directory, entry.name);
+
+    if (entry.isDirectory()) files.push(...collectFiles(path, extension));
+    else if (entry.isFile() && entry.name.endsWith(extension)) files.push(path);
+  }
+
+  return files;
+};
+
 const json = (path: string, value: JsonValue): void =>
   write(path, `${JSON.stringify(value, null, 2)}\n`);
 
@@ -105,10 +172,27 @@ try {
     cwd: repository,
     stdio: "pipe",
   });
-  const packageFiles = execFileSync("tar", ["-tzf", tarballPath], { encoding: "utf8" });
 
-  if (!packageFiles.includes("package/vendor/anti-slop/upstream/vendor/eslint-stylistic/LICENSE")) {
-    throw new Error("Packed package omitted the nested ESLint Stylistic license.");
+  const packageFiles = new Set(
+    execFileSync("tar", ["-tzf", tarballPath], { encoding: "utf8" })
+      .split("\n")
+      .filter((path) => path !== ""),
+  );
+
+  // SAFETY: The checked-in snapshot was validated by check:vendor before this packed boundary.
+  const snapshot = JSON.parse(
+    readFileSync(join(repository, "vendor/anti-slop/upstream.snapshot.json"), "utf8"),
+  ) as { readonly files: Readonly<Record<string, string>> };
+
+  const requiredVendorFiles = [
+    "package/vendor/anti-slop/LICENSE",
+    ...Object.keys(snapshot.files).map((path) => `package/vendor/anti-slop/upstream/${path}`),
+  ];
+
+  const omittedVendorFiles = requiredVendorFiles.filter((path) => !packageFiles.has(path));
+
+  if (omittedVendorFiles.length > 0) {
+    throw new Error(`Packed package omitted vendored files: ${omittedVendorFiles.join(", ")}`);
   }
 
   json("package.json", {
@@ -117,20 +201,51 @@ try {
     type: "module",
     dependencies: {
       "@syzom/typescript-quality": `file:${tarballPath}`,
-      "@biomejs/biome": "2.5.12",
-      "@effect/tsgo": "0.45.0",
-      effect: "4.0.0-rc.112",
-      oxlint: "1.82.0",
-      "oxlint-tsgolint": "7.0.2001",
-      typescript: "7.0.2",
+      "@oxlint/plugins": pluginApiVersion,
+      ...toolVersions,
     },
   });
   expectSuccess(
     "consumer install",
     run("pnpm", ["install", "--ignore-scripts", "--no-frozen-lockfile"]),
   );
+  const installedPackage = join(consumer, "node_modules/@syzom/typescript-quality");
+
+  const declarationFiles = collectFiles(join(installedPackage, "dist"), ".d.ts");
+
+  expectSuccess(
+    "Published declaration graph",
+    run("node_modules/.bin/tsc", [
+      "--noEmit",
+      "--pretty",
+      "false",
+      "--module",
+      "NodeNext",
+      "--moduleResolution",
+      "NodeNext",
+      "--skipLibCheck",
+      "false",
+      ...declarationFiles,
+    ]),
+  );
+  json("tsconfig-base-alias.json", {
+    extends: "@syzom/typescript-quality/tsconfig",
+    files: [],
+  });
+  expectSuccess(
+    "Short tsconfig alias",
+    run("node_modules/.bin/tsc", ["--showConfig", "--project", "tsconfig-base-alias.json"]),
+  );
+  json("tsconfig-effect-alias.json", {
+    extends: "@syzom/typescript-quality/tsconfig/effect",
+    files: [],
+  });
+  expectSuccess(
+    "Short Effect tsconfig alias",
+    run("node_modules/.bin/tsc", ["--showConfig", "--project", "tsconfig-effect-alias.json"]),
+  );
   json("tsconfig.json", {
-    extends: "@syzom/typescript-quality/tsconfig/base.json",
+    extends: "@syzom/typescript-quality/tsconfig/effect.json",
     include: ["src/**/*.ts"],
   });
   json("biome.json", { extends: ["@syzom/typescript-quality/biome"] });
@@ -342,9 +457,18 @@ ${Array.from({ length: 20 }, (_, index) => `  if (result > ${index}) { result -=
   configure("/effect");
   write(
     "src/plugin-imports.ts",
-    `import genericPlugin from "@syzom/typescript-quality/anti-slop";
+    `import baseConfig from "@syzom/typescript-quality/oxlint";
+import baseCompatibilityConfig from "@syzom/typescript-quality/oxlint/base.mjs";
+import effectConfig from "@syzom/typescript-quality/oxlint/effect";
+import genericPlugin from "@syzom/typescript-quality/anti-slop";
 import canonicalPlugin from "@syzom/typescript-quality/anti-slop/canonical";
 import effectPlugin from "@syzom/typescript-quality/anti-slop/effect";
+
+export interface ShapeContract {
+  readonly value: number;
+}
+
+export const configs = [baseConfig, baseCompatibilityConfig, effectConfig] as const;
 
 export const plugins = [genericPlugin, canonicalPlugin, effectPlugin] as const;
 `,
@@ -438,6 +562,32 @@ export const hidden = program as Effect.Effect<number>;
 export const program = Effect.fail<unknown>("failure");
 `,
     "any-unknown-in-error-context",
+  );
+  write(
+    "oxlint.config.ts",
+    `import { defineConfig } from "oxlint";
+import baseConfig from "@syzom/typescript-quality/oxlint";
+
+export default defineConfig({
+  ...baseConfig,
+  jsPlugins: [
+    ...(baseConfig.jsPlugins ?? []),
+    {
+      name: "anti-slop-canonical",
+      specifier: "@syzom/typescript-quality/anti-slop/canonical",
+    },
+  ],
+  rules: {
+    ...baseConfig.rules,
+    "anti-slop-canonical/no-shape-in-symbol-names": "error",
+  },
+});
+`,
+  );
+  negative(
+    "src/canonical-shape.ts",
+    "export interface ShapeContract { readonly value: number; }\n",
+    "no-shape-in-symbol-names",
   );
   console.log("packed consumer validation passed");
 } finally {

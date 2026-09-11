@@ -54,14 +54,16 @@
     }
   },
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
+    "build": "tsc -p tsconfig.build.json && node -e \"require('node:fs').copyFileSync('vendor/anti-slop/upstream/vendor/eslint-stylistic/padding-line-options.d.ts', 'dist/upstream/vendor/eslint-stylistic/padding-line-options.d.ts')\"",
     "prepack": "pnpm run build",
     "quality:prepare": "pnpm run build && effect-tsgo patch --oxlint --no-typescript",
     "quality": "pnpm run quality:prepare && biome check --error-on-warnings . && oxlint --config oxlint.config.mjs .",
     "sync:rules": "pnpm run build && tsx scripts/sync-rule-severities.ts",
     "check:rules": "pnpm run build && tsx scripts/sync-rule-severities.ts --check",
     "check:vendor": "tsx scripts/check-vendored-snapshot.ts",
-    "check": "pnpm run quality && pnpm run check:rules && pnpm run check:vendor && tsx test/packed-consumer.ts"
+    "check:effect-config": "tsx scripts/check-effect-tsconfig.ts",
+    "check:dist": "pnpm run build && git diff --exit-code -- dist && test -z \"$(git ls-files --others --exclude-standard -- dist)\"",
+    "check": "pnpm run quality && pnpm run check:rules && pnpm run check:vendor && pnpm run check:effect-config && pnpm run check:dist && tsx test/packed-consumer.ts"
   },
   "dependencies": {
     "@oxlint/plugins": "1.82.0"
@@ -86,6 +88,7 @@
     "@biomejs/biome": "2.5.12",
     "@effect/tsgo": "0.45.0",
     "@types/node": "22.20.2",
+    "ajv": "8.18.0",
     "effect": "4.0.0-rc.112",
     "oxlint": "1.82.0",
     "oxlint-tsgolint": "7.0.2001",

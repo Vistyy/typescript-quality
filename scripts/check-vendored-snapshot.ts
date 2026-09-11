@@ -10,7 +10,11 @@ interface Snapshot {
 
 const expectedRevision = "c44ef22ca116d0ba62a3ff663a0bd13a3f3fa40b";
 
+const expectedLicenseHash = "10ed33bf340d6d63dc0633dfc917a346b369b6aa41fe20734aefc6a3fb75ba17";
+
 const vendorRoot = fileURLToPath(new URL("../vendor/anti-slop/upstream/", import.meta.url));
+
+const licenseUrl = new URL("../vendor/anti-slop/LICENSE", import.meta.url);
 
 const manifestUrl = new URL("../vendor/anti-slop/upstream.snapshot.json", import.meta.url);
 
@@ -21,6 +25,16 @@ const snapshot = JSON.parse(manifestContent) as Snapshot;
 
 if (snapshot.revision !== expectedRevision) {
   throw new Error(`Expected anti-slop snapshot ${expectedRevision}, found ${snapshot.revision}.`);
+}
+
+const licenseHash = createHash("sha256")
+  .update(await readFile(licenseUrl))
+  .digest("hex");
+
+if (licenseHash !== expectedLicenseHash) {
+  throw new Error(
+    `Vendored anti-slop LICENSE drifted: expected ${expectedLicenseHash}, found ${licenseHash}.`,
+  );
 }
 
 const actualFiles: string[] = [];
@@ -76,5 +90,5 @@ for (const relativePath of actualFiles) {
 }
 
 console.log(
-  `Vendored anti-slop snapshot ${expectedRevision} verified (${actualFiles.length} files).`,
+  `Vendored anti-slop LICENSE and snapshot ${expectedRevision} verified (${actualFiles.length} upstream files).`,
 );

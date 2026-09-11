@@ -19,6 +19,12 @@ type JsonValue = JsonScalar | JsonValue[] | { [key: string]: JsonValue };
 type RuleMap = Record<string, JsonValue>;
 
 interface OxlintConfiguration {
+  readonly options: {
+    readonly denyWarnings?: boolean;
+    readonly typeAware?: boolean;
+    readonly typeCheck?: boolean;
+  };
+  readonly plugins: readonly string[];
   readonly rules: RuleMap;
 }
 
@@ -130,6 +136,36 @@ const effect = parseOxlintConfiguration(
     "--print-config",
   ]),
 );
+
+const expectedEffectPlugins = ["effecttsgo", "oxc", "typescript"];
+
+const actualEffectPlugins = [...effect.plugins].sort((left, right) =>
+  left.localeCompare(right, "en"),
+);
+
+if (JSON.stringify(actualEffectPlugins) !== JSON.stringify(expectedEffectPlugins)) {
+  throw new Error(
+    `Effect preset plugins must be explicit: expected ${expectedEffectPlugins.join(", ")}, found ${actualEffectPlugins.join(", ")}.`,
+  );
+}
+
+if (
+  effect.options.denyWarnings !== true ||
+  effect.options.typeAware !== true ||
+  effect.options.typeCheck !== true
+) {
+  throw new Error("Effect preset must inherit the base execution options through extends.");
+}
+
+const unexpectedUnicornRules = Object.keys(effect.rules).filter((rule) =>
+  rule.startsWith("unicorn/"),
+);
+
+if (unexpectedUnicornRules.length > 0) {
+  throw new Error(
+    `Effect preset implicitly enabled unicorn rules: ${unexpectedUnicornRules.join(", ")}`,
+  );
+}
 
 const recommendedEffectRules = Object.keys(effectRecommended.rules ?? {});
 

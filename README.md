@@ -29,7 +29,7 @@ Keep the compatible versions pinned together and commit the package-manager lock
 ```json
 {
   "extends": ["@syzom/typescript-quality/biome"],
-  "files": { "includes": ["**", "!!dist/**", "!!coverage/**"] }
+  "files": { "includes": ["**", "!!dist", "!!coverage"] }
 }
 ```
 
@@ -45,8 +45,7 @@ export default defineConfig({
 });
 ```
 
-For Effect projects, use `@syzom/typescript-quality/oxlint/effect` instead.
-Spread the configuration at the root: putting it only in `extends` does not carry Oxlint's root-owned execution options.
+For Effect projects, use `@syzom/typescript-quality/oxlint/effect` instead. Oxlint merges the preset's execution options when it is supplied through the object `extends` shown by Oxlint's `defineConfig` API; spreading remains a concise way to add project-local fields.
 
 `tsconfig.json`:
 
@@ -57,8 +56,16 @@ Spread the configuration at the root: putting it only in `extends` does not carr
 }
 ```
 
-Adjust source and generated-file selection to the project.
-For optional Effect editor integration, follow the [Effect TypeScript language-service documentation](https://github.com/Effect-TS/tsgo).
+Adjust source and generated-file selection to the project. Effect projects can adopt the published language-service configuration directly:
+
+```json
+{
+  "extends": "@syzom/typescript-quality/tsconfig/effect.json",
+  "include": ["src/**/*.ts", "test/**/*.ts"]
+}
+```
+
+The shorter `@syzom/typescript-quality/tsconfig/effect` alias is also exported. After installation, follow the [Effect TypeScript language-service documentation](https://github.com/Effect-TS/tsgo) for editor patching.
 
 ## Check
 
@@ -88,6 +95,7 @@ The warning guards remain a safeguard for other tool diagnostics.
 - The generic preset rejects repeated eager array passes, copying reducer accumulators, accumulating spreads, and unreadable statement spacing in addition to its evidence and boundary rules.
 - The Effect preset makes the pinned upstream recommended rules errors, adds unsafe channel-assertion and `any`/`unknown` error/requirements-channel checks, and enables the vendored Effect tag, Match, and service-constructor rules.
 - Vendored anti-slop rules reject selected low-evidence patterns; [provenance and update instructions](vendor/anti-slop/PROVENANCE.md) identify their exact upstream source and nested license obligations.
+- The enabled generic and Effect presets intentionally omit the upstream spelling-based `no-shape-in-symbol-names` rule, so they do not ban `Shape` names. The raw `@syzom/typescript-quality/anti-slop/canonical` export exposes the complete upstream plugin for explicit opt-in. Register it under a distinct alias such as `anti-slop-canonical` and select its rules explicitly (for example, `"anti-slop-canonical/no-shape-in-symbol-names": "error"`); its rule map differs from the package's default `anti-slop` wrapper.
 - New rules are blocking by default. Fix owned code where practical and use narrow explained exceptions for genuine boundaries or conflicting architecture; repeated exceptions require reevaluating the shared rule.
 - There is no file-length limit, blanket constructor-name ban, or `Shape`-name ban.
 

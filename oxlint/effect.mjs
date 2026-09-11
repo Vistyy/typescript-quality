@@ -4,8 +4,8 @@ import baseConfig from "./base.mjs";
 const recommendedRules = recommended.rules ?? {};
 
 export default {
-  options: baseConfig.options,
   extends: [baseConfig, recommended],
+  plugins: [...(baseConfig.plugins ?? []), ...(recommended.plugins ?? [])],
   jsPlugins: [
     ...baseConfig.jsPlugins,
     {
