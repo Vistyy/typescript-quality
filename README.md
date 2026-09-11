@@ -2,7 +2,7 @@
 
 Shared, pinned Biome, Oxlint, TypeScript, and optional Effect v4 configuration.
 Projects keep ownership of their runtime, source selection, and justified exceptions.
-The toolchain requires Node.js 22.13 or newer and is verified on Node.js 22 and 24 on Linux.
+The toolchain requires Node.js 22.18.0 or newer and is verified on Node.js 22 and 24 on Linux.
 
 ## Install
 
