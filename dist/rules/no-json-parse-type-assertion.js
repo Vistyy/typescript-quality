@@ -1,17 +1,29 @@
 import { defineRule } from "@oxlint/plugins";
 import { resolveVariable } from "../upstream/shared/scope.js";
-function isGlobalJson(sourceCode, expression) {
-    if (expression.type !== "Identifier" || expression.name !== "JSON")
+function isGlobalIdentifier(sourceCode, expression, name) {
+    if (expression.type !== "Identifier" || expression.name !== name)
         return false;
     if (sourceCode.isGlobalReference(expression))
         return true;
     const variable = resolveVariable(sourceCode, expression);
     return variable === null || variable.defs.length === 0;
 }
-function isJsonParseCall(sourceCode, expression) {
-    if (expression.type !== "CallExpression")
+function isGlobalJson(sourceCode, expression) {
+    if (isGlobalIdentifier(sourceCode, expression, "JSON"))
+        return true;
+    if (expression.type !== "MemberExpression")
         return false;
-    const callee = expression.callee;
+    if (!isGlobalIdentifier(sourceCode, expression.object, "globalThis"))
+        return false;
+    return expression.computed
+        ? expression.property.type === "Literal" && expression.property.value === "JSON"
+        : expression.property.type === "Identifier" && expression.property.name === "JSON";
+}
+function isJsonParseCall(sourceCode, expression) {
+    const candidate = expression.type === "ChainExpression" ? expression.expression : expression;
+    if (candidate.type !== "CallExpression")
+        return false;
+    const callee = candidate.callee;
     if (callee.type === "Super" || callee.type === "V8IntrinsicExpression")
         return false;
     if (!("object" in callee) || !("property" in callee) || !("computed" in callee))

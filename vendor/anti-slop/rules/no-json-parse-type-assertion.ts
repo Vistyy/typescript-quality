@@ -2,8 +2,12 @@ import type { ESTree, SourceCode } from "@oxlint/plugins";
 import { defineRule } from "@oxlint/plugins";
 import { resolveVariable } from "../upstream/shared/scope.ts";
 
-function isGlobalJson(sourceCode: SourceCode, expression: ESTree.Expression): boolean {
-  if (expression.type !== "Identifier" || expression.name !== "JSON") return false;
+function isGlobalIdentifier(
+  sourceCode: SourceCode,
+  expression: ESTree.Expression,
+  name: string,
+): boolean {
+  if (expression.type !== "Identifier" || expression.name !== name) return false;
 
   if (sourceCode.isGlobalReference(expression)) return true;
 
@@ -12,10 +16,24 @@ function isGlobalJson(sourceCode: SourceCode, expression: ESTree.Expression): bo
   return variable === null || variable.defs.length === 0;
 }
 
-function isJsonParseCall(sourceCode: SourceCode, expression: ESTree.Expression): boolean {
-  if (expression.type !== "CallExpression") return false;
+function isGlobalJson(sourceCode: SourceCode, expression: ESTree.Expression): boolean {
+  if (isGlobalIdentifier(sourceCode, expression, "JSON")) return true;
 
-  const callee = expression.callee;
+  if (expression.type !== "MemberExpression") return false;
+
+  if (!isGlobalIdentifier(sourceCode, expression.object, "globalThis")) return false;
+
+  return expression.computed
+    ? expression.property.type === "Literal" && expression.property.value === "JSON"
+    : expression.property.type === "Identifier" && expression.property.name === "JSON";
+}
+
+function isJsonParseCall(sourceCode: SourceCode, expression: ESTree.Expression): boolean {
+  const candidate = expression.type === "ChainExpression" ? expression.expression : expression;
+
+  if (candidate.type !== "CallExpression") return false;
+
+  const callee = candidate.callee;
 
   if (callee.type === "Super" || callee.type === "V8IntrinsicExpression") return false;
 

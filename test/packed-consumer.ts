@@ -323,6 +323,9 @@ export const answer: number = 42;
     run("node_modules/.bin/biome", ["check", "--error-on-warnings", "src/valid.ts"]),
   );
   expectSuccess("Oxlint valid example", lint("src/valid.ts"));
+  write("src/unselected-unicorn-valid.ts", "");
+  expectSuccess("Unselected Unicorn default", lint("src/unselected-unicorn-valid.ts"));
+  rmSync(join(consumer, "src/unselected-unicorn-valid.ts"));
   write(
     "src/type-import-contract.ts",
     `export interface RuntimeContract {
@@ -562,6 +565,16 @@ export const rejected = promise.then(undefined, (error: unknown) => String(error
     '// SAFETY: A comment must not convert unvalidated runtime JSON into evidence.\nexport const parsed = JSON.parse("{}") as { readonly value: string };\n',
     "no-json-parse-type-assertion",
   );
+  negative(
+    "src/global-this-json-parse-assertion.ts",
+    '// SAFETY: Qualifying the global JSON object must not bypass validation.\nexport const parsed = globalThis.JSON.parse("{}") as { readonly value: string };\n',
+    "no-json-parse-type-assertion",
+  );
+  negative(
+    "src/optional-json-parse-assertion.ts",
+    '// SAFETY: Optional access to the global JSON object must not bypass validation.\nexport const parsed = JSON?.parse("{}") as { readonly value: string };\n',
+    "no-json-parse-type-assertion",
+  );
   write(
     "src/local-json-parser.ts",
     `declare const JSON: { parse(text: string): number | string };
@@ -572,6 +585,17 @@ export const parsed = JSON.parse("{}") as string;
   );
   expectSuccess("Module-local JSON parser", lint("src/local-json-parser.ts"));
   rmSync(join(consumer, "src/local-json-parser.ts"));
+  write(
+    "src/local-global-this-parser.ts",
+    `// oxlint-disable-next-line no-shadow-restricted-names -- This local binding distinguishes the rule's lexical scope handling from the global object.
+const globalThis = { JSON: { parse: (_text: string): number | string => "parsed" } };
+
+// SAFETY: This fixture deliberately narrows the module-local globalThis contract to prove it is not the global JSON boundary.
+export const parsed = globalThis.JSON.parse("{}") as string;
+`,
+  );
+  expectSuccess("Module-local globalThis parser", lint("src/local-global-this-parser.ts"));
+  rmSync(join(consumer, "src/local-global-this-parser.ts"));
   write(
     "src/type-cycle-a.ts",
     `import type { TypeCycleB } from "./type-cycle-b.js";

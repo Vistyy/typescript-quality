@@ -104,8 +104,8 @@ const isError = (setting: JsonValue | undefined): boolean => {
   return severity === "deny" || severity === "error" || severity === 2;
 };
 
-const isDisabled = (setting: JsonValue | undefined): boolean => {
-  const severity = setting === undefined ? "off" : severityOf(setting);
+const isDisabled = (setting: JsonValue): boolean => {
+  const severity = severityOf(setting);
 
   return severity === "allow" || severity === "off" || severity === 0;
 };
@@ -200,8 +200,10 @@ if (nonErrorEffectRules.length > 0) {
 }
 
 for (const rule of disabledEffectRules) {
-  if (!isDisabled(effect.rules[rule])) {
-    throw new Error(`Excluded Effect recommended rule ${rule} must resolve to off.`);
+  const setting = effect.rules[rule];
+
+  if (setting === undefined || !isDisabled(setting)) {
+    throw new Error(`Excluded Effect recommended rule ${rule} must resolve explicitly to off.`);
   }
 }
 
