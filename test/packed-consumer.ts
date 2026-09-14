@@ -532,6 +532,20 @@ export function impossible(value: string): never {
     'export const caught = Promise.reject(new Error("failure")).catch((error) => String(error));\n',
     "use-unknown-in-catch-callback-variable",
   );
+  write(
+    "src/unknown-rejection-callbacks-valid.ts",
+    `const promise = Promise.reject(new Error("failure"));
+
+export const caught = promise.catch((error: unknown) => String(error));
+
+export const rejected = promise.then(undefined, (error: unknown) => String(error));
+`,
+  );
+  expectSuccess(
+    "Explicit unknown Promise rejection callbacks",
+    lint("src/unknown-rejection-callbacks-valid.ts"),
+  );
+  rmSync(join(consumer, "src/unknown-rejection-callbacks-valid.ts"));
   negative(
     "src/promise-executor-return.ts",
     "export const promise = new Promise<void>((resolve) => (resolve(), 1));\n",

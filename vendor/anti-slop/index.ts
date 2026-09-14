@@ -2,6 +2,7 @@ import { eslintCompatPlugin } from "@oxlint/plugins";
 
 import { noJsonParseTypeAssertionRule } from "./rules/no-json-parse-type-assertion.ts";
 import { noNeverTypeAssertionRule } from "./rules/no-never-type-assertion.ts";
+import { noUnknownParametersRule } from "./rules/no-unknown-parameters.ts";
 
 import { noArrayFilterMapRule } from "./upstream/rules/no-array-filter-map.ts";
 import { noChainedTypeAssertionsRule } from "./upstream/rules/no-chained-type-assertions.ts";
@@ -13,7 +14,6 @@ import { noReduceAccumulatorCopyRule } from "./upstream/rules/no-reduce-accumula
 import { noReflectApplyRule } from "./upstream/rules/no-reflect-apply.ts";
 import { noReflectGetRule } from "./upstream/rules/no-reflect-get.ts";
 import { noRuntimeTypeofRule } from "./upstream/rules/no-runtime-typeof.ts";
-import { noUnknownParametersRule } from "./upstream/rules/no-unknown-parameters.ts";
 import { noUnknownReturnsRule } from "./upstream/rules/no-unknown-returns.ts";
 import { noUnknownTypeAliasesRule } from "./upstream/rules/no-unknown-type-aliases.ts";
 import { noUnsafeDictionaryTypeRule } from "./upstream/rules/no-unsafe-dictionary-type.ts";

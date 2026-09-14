@@ -1,6 +1,7 @@
 import { eslintCompatPlugin } from "@oxlint/plugins";
 import { noJsonParseTypeAssertionRule } from "./rules/no-json-parse-type-assertion.js";
 import { noNeverTypeAssertionRule } from "./rules/no-never-type-assertion.js";
+import { noUnknownParametersRule } from "./rules/no-unknown-parameters.js";
 import { noArrayFilterMapRule } from "./upstream/rules/no-array-filter-map.js";
 import { noChainedTypeAssertionsRule } from "./upstream/rules/no-chained-type-assertions.js";
 import { noConditionalEmptyObjectSpreadRule } from "./upstream/rules/no-conditional-empty-object-spread.js";
@@ -11,7 +12,6 @@ import { noReduceAccumulatorCopyRule } from "./upstream/rules/no-reduce-accumula
 import { noReflectApplyRule } from "./upstream/rules/no-reflect-apply.js";
 import { noReflectGetRule } from "./upstream/rules/no-reflect-get.js";
 import { noRuntimeTypeofRule } from "./upstream/rules/no-runtime-typeof.js";
-import { noUnknownParametersRule } from "./upstream/rules/no-unknown-parameters.js";
 import { noUnknownReturnsRule } from "./upstream/rules/no-unknown-returns.js";
 import { noUnknownTypeAliasesRule } from "./upstream/rules/no-unknown-type-aliases.js";
 import { noUnsafeDictionaryTypeRule } from "./upstream/rules/no-unsafe-dictionary-type.js";
