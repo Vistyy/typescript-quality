@@ -20,7 +20,7 @@ const manifestUrl = new URL("../vendor/anti-slop/upstream.snapshot.json", import
 
 const manifestContent = await readFile(manifestUrl, "utf8");
 
-// SAFETY: This checked-in release manifest is validated below against its exact revision, complete file set, and SHA-256 digest shape.
+// oxlint-disable-next-line anti-slop/no-json-parse-type-assertion -- SAFETY: This checked-in release manifest is validated below against its exact revision, complete file set, and SHA-256 digest shape.
 const snapshot = JSON.parse(manifestContent) as Snapshot;
 
 if (snapshot.revision !== expectedRevision) {

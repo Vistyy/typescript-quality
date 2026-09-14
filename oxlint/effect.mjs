@@ -17,10 +17,8 @@ export default {
     ...Object.fromEntries(Object.keys(recommendedRules).map((rule) => [rule, "error"])),
     "effecttsgo/unsafe-effect-type-assertion": "error",
     "effecttsgo/any-unknown-in-error-context": "error",
+    "effecttsgo/node-builtin-import": "off",
     "anti-slop-effect/no-manual-effect-error-tag": "error",
-    "anti-slop-effect/no-manual-tag-comparison": "error",
-    "anti-slop-effect/no-manual-tagged-construction": "error",
-    "anti-slop-effect/no-service-constructor-imports": "error",
     "anti-slop-effect/prefer-effect-match": "error",
   },
 };

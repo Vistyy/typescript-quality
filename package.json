@@ -1,6 +1,6 @@
 {
   "name": "@syzom/typescript-quality",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "description": "Pinned shared TypeScript, Biome, Oxlint, anti-slop, and Effect v4 quality configuration",
   "license": "MIT",
   "repository": {

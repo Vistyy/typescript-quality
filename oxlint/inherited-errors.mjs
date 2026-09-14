@@ -96,5 +96,18 @@ export default {
   "typescript/require-array-sort-compare": "error",
   "typescript/restrict-template-expressions": "error",
   "typescript/triple-slash-reference": "error",
-  "typescript/unbound-method": "error"
+  "typescript/unbound-method": "error",
+  "unicorn/no-await-in-promise-methods": "off",
+  "unicorn/no-empty-file": "off",
+  "unicorn/no-invalid-fetch-options": "off",
+  "unicorn/no-invalid-remove-event-listener": "off",
+  "unicorn/no-new-array": "off",
+  "unicorn/no-single-promise-in-promise-methods": "off",
+  "unicorn/no-thenable": "off",
+  "unicorn/no-unnecessary-await": "off",
+  "unicorn/no-useless-fallback-in-spread": "off",
+  "unicorn/no-useless-length-check": "off",
+  "unicorn/no-useless-spread": "off",
+  "unicorn/prefer-set-size": "off",
+  "unicorn/prefer-string-starts-ends-with": "off"
 };

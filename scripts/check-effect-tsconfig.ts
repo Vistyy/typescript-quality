@@ -35,14 +35,14 @@ const schemaPath = join(dirname(require.resolve("@effect/tsgo/package.json")), "
 
 const schemaContent = await readFile(schemaPath, "utf8");
 
-// SAFETY: The installed package owns this JSON schema; Ajv validates its use below.
+// oxlint-disable-next-line anti-slop/no-json-parse-type-assertion -- SAFETY: The installed package owns this JSON schema; Ajv validates its use below.
 const schema = JSON.parse(schemaContent) as JsonSchema & AnySchema;
 
 const configPath = fileURLToPath(new URL("../tsconfig/effect.json", import.meta.url));
 
 const configContent = await readFile(configPath, "utf8");
 
-// SAFETY: The complete document and its Effect plugin object are validated before use.
+// oxlint-disable-next-line anti-slop/no-json-parse-type-assertion -- SAFETY: The complete document and its Effect plugin object are validated before use.
 const config = JSON.parse(configContent) as EffectTsconfig;
 
 const effectOptions = schema.definitions.effectLanguageServicePluginOptionsDefinition;

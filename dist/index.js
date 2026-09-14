@@ -1,4 +1,5 @@
 import { eslintCompatPlugin } from "@oxlint/plugins";
+import { noJsonParseTypeAssertionRule } from "./rules/no-json-parse-type-assertion.js";
 import { noNeverTypeAssertionRule } from "./rules/no-never-type-assertion.js";
 import { noArrayFilterMapRule } from "./upstream/rules/no-array-filter-map.js";
 import { noChainedTypeAssertionsRule } from "./upstream/rules/no-chained-type-assertions.js";
@@ -24,6 +25,7 @@ export default eslintCompatPlugin({
         "no-array-filter-map": noArrayFilterMapRule,
         "no-chained-type-assertions": noChainedTypeAssertionsRule,
         "no-conditional-empty-object-spread": noConditionalEmptyObjectSpreadRule,
+        "no-json-parse-type-assertion": noJsonParseTypeAssertionRule,
         "no-known-value-widening": noKnownValueWideningRule,
         "no-module-mocking": noModuleMockingRule,
         "no-never-type-assertion": noNeverTypeAssertionRule,

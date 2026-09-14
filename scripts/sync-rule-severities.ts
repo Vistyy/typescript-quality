@@ -65,7 +65,7 @@ const root = fileURLToPath(new URL("../", import.meta.url));
 async function readJson<Value>(path: string): Promise<Value> {
   const content = await readFile(new URL(path, new URL("../", import.meta.url)), "utf8");
 
-  // SAFETY: Each caller supplies the checked-in or installed manifest/schema contract for this exact repository-owned path. Subsequent property access and tool execution fail closed if that dependency changes shape.
+  // oxlint-disable-next-line anti-slop/no-json-parse-type-assertion -- SAFETY: Each caller supplies the checked-in or installed manifest/schema contract for this exact repository-owned path. Subsequent property access and tool execution fail closed if that dependency changes shape.
   return JSON.parse(content) as Value;
 }
 
@@ -104,11 +104,17 @@ const isError = (setting: JsonValue | undefined): boolean => {
   return severity === "deny" || severity === "error" || severity === 2;
 };
 
+const isDisabled = (setting: JsonValue | undefined): boolean => {
+  const severity = setting === undefined ? "off" : severityOf(setting);
+
+  return severity === "allow" || severity === "off" || severity === 0;
+};
+
 const asError = (setting: JsonValue): JsonValue =>
   Array.isArray(setting) ? ["error", ...setting.slice(1)] : "error";
 
 const parseOxlintConfiguration = (content: string): OxlintConfiguration => {
-  // SAFETY: Oxlint's JSON printer owns this stable configuration envelope; missing rules fail the synchronization operation rather than producing a valid overlay.
+  // oxlint-disable-next-line anti-slop/no-json-parse-type-assertion -- SAFETY: Oxlint's JSON printer owns this stable configuration envelope; missing rules fail the synchronization operation rather than producing a valid overlay.
   return JSON.parse(content) as OxlintConfiguration;
 };
 
@@ -122,11 +128,21 @@ const oxlint = parseOxlintConfiguration(
   ]),
 );
 
-const inheritedErrors = Object.fromEntries(
-  Object.entries(oxlint.rules)
-    .filter(([, setting]) => isWarning(setting))
-    .map(([name, setting]) => [name, asError(setting)]),
+const selectedUnicornRules = new Set(["unicorn/error-message"]);
+
+const disabledUnicornDefaults = Object.keys(oxlint.rules).filter(
+  (rule) => rule.startsWith("unicorn/") && !selectedUnicornRules.has(rule),
 );
+
+const promotedOxlintWarnings = Object.entries(oxlint.rules).filter(
+  ([name, setting]) => isWarning(setting) && !disabledUnicornDefaults.includes(name),
+);
+
+const inheritedErrors: RuleMap = {};
+
+for (const [name, setting] of promotedOxlintWarnings) inheritedErrors[name] = asError(setting);
+
+for (const name of disabledUnicornDefaults) inheritedErrors[name] = "off";
 
 const effect = parseOxlintConfiguration(
   await run(process.execPath, [
@@ -137,7 +153,7 @@ const effect = parseOxlintConfiguration(
   ]),
 );
 
-const expectedEffectPlugins = ["effecttsgo", "oxc", "typescript"];
+const expectedEffectPlugins = ["effecttsgo", "import", "oxc", "typescript", "unicorn"];
 
 const actualEffectPlugins = [...effect.plugins].sort((left, right) =>
   left.localeCompare(right, "en"),
@@ -157,24 +173,36 @@ if (
   throw new Error("Effect preset must inherit the base execution options through extends.");
 }
 
-const unexpectedUnicornRules = Object.keys(effect.rules).filter((rule) =>
-  rule.startsWith("unicorn/"),
+const configuredUnicornRules = new Set([...selectedUnicornRules, ...disabledUnicornDefaults]);
+
+const unexpectedUnicornRules = Object.keys(effect.rules).filter(
+  (rule) => rule.startsWith("unicorn/") && !configuredUnicornRules.has(rule),
 );
 
 if (unexpectedUnicornRules.length > 0) {
   throw new Error(
-    `Effect preset implicitly enabled unicorn rules: ${unexpectedUnicornRules.join(", ")}`,
+    `Effect preset implicitly enabled unselected unicorn rules: ${unexpectedUnicornRules.join(", ")}`,
   );
 }
 
 const recommendedEffectRules = Object.keys(effectRecommended.rules ?? {});
 
-const nonErrorEffectRules = recommendedEffectRules.filter((rule) => !isError(effect.rules[rule]));
+const disabledEffectRules = new Set(["effecttsgo/node-builtin-import"]);
+
+const selectedEffectRules = recommendedEffectRules.filter((rule) => !disabledEffectRules.has(rule));
+
+const nonErrorEffectRules = selectedEffectRules.filter((rule) => !isError(effect.rules[rule]));
 
 if (nonErrorEffectRules.length > 0) {
   throw new Error(
-    `Effect recommended rules must resolve to error severity: ${nonErrorEffectRules.join(", ")}`,
+    `Selected Effect recommended rules must resolve to error severity: ${nonErrorEffectRules.join(", ")}`,
   );
+}
+
+for (const rule of disabledEffectRules) {
+  if (!isDisabled(effect.rules[rule])) {
+    throw new Error(`Excluded Effect recommended rule ${rule} must resolve to off.`);
+  }
 }
 
 const biome = await readJson<BiomePolicy>("biome/policy.json");
@@ -271,5 +299,5 @@ for (const [path, content] of Object.entries(outputs)) {
 }
 
 console.log(
-  `Severity overlays: ${Object.keys(inheritedErrors).length} Oxlint warnings, ${biomePromotions} recommended Biome warnings; ${recommendedEffectRules.length} Effect recommended rules are errors.`,
+  `Severity overlays: ${promotedOxlintWarnings.length} Oxlint warnings promoted, ${disabledUnicornDefaults.length} unselected Unicorn defaults disabled, ${biomePromotions} recommended Biome warnings promoted; ${selectedEffectRules.length} selected Effect recommended rules are errors.`,
 );

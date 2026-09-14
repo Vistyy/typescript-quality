@@ -8,7 +8,7 @@ The toolchain requires Node.js 22.18.0 or newer and is verified on Node.js 22 an
 
 ```sh
 pnpm add --save-dev --save-exact \
-  @syzom/typescript-quality@0.3.1 \
+  @syzom/typescript-quality@0.4.0 \
   @biomejs/biome@2.5.12 oxlint@1.82.0 oxlint-tsgolint@7.0.2001 \
   typescript@7.0.2
 ```
@@ -88,12 +88,13 @@ The warning guards remain a safeguard for other tool diagnostics.
 
 ## Policy and exceptions
 
+- TypeScript owns strict checking, isolated-module compatibility, and verbatim module syntax so type-only imports remain explicit.
 - Biome owns formatting, recommended rules, explicit `any` rejection, and cognitive complexity capped at **15**.
-- Oxlint owns type-aware safety checks and exhaustive union switches, including switches with a `default` case.
+- Oxlint owns type-aware safety checks, exhaustive union switches (including switches with a `default` case), unknown Promise rejection callbacks, unnecessary generic parameters and assertions, Promise executor returns, non-`Error` rejections, required built-in `Error` messages, and runtime import cycles while ignoring type-only cycles.
 - Assertions to `never` (including locally resolved aliases) and chained assertions are errors even when accompanied by a safety comment.
 - Runtime `typeof` is allowed in explicit type guards and existence probes; other runtime uses remain errors.
-- The generic preset rejects repeated eager array passes, copying reducer accumulators, accumulating spreads, and unreadable statement spacing in addition to its evidence and boundary rules.
-- The Effect preset makes the pinned upstream recommended rules errors, adds unsafe channel-assertion and `any`/`unknown` error/requirements-channel checks, and enables the vendored Effect tag, Match, and service-constructor rules.
+- The generic preset rejects direct type assertions on global `JSON.parse` results, repeated eager array passes, copying reducer accumulators, accumulating spreads, and unreadable statement spacing in addition to its evidence and boundary rules.
+- The Effect preset makes the pinned upstream recommended rules errors except the blanket Node built-in import restriction, adds unsafe channel-assertion and `any`/`unknown` error/requirements-channel checks, and enables the focused manual Effect error-tag and Effect Match rules. It does not impose generic tagged-value construction or service-constructor architecture.
 - Vendored anti-slop rules reject selected low-evidence patterns; [provenance and update instructions](vendor/anti-slop/PROVENANCE.md) identify their exact upstream source and nested license obligations.
 - The enabled generic and Effect presets intentionally omit the upstream spelling-based `no-shape-in-symbol-names` rule, so they do not ban `Shape` names. The raw `@syzom/typescript-quality/anti-slop/canonical` export exposes the complete upstream plugin for explicit opt-in. Register it under a distinct alias such as `anti-slop-canonical` and select its rules explicitly (for example, `"anti-slop-canonical/no-shape-in-symbol-names": "error"`); its rule map differs from the package's default `anti-slop` wrapper.
 - New rules are blocking by default. Fix owned code where practical and use narrow explained exceptions for genuine boundaries or conflicting architecture; repeated exceptions require reevaluating the shared rule.

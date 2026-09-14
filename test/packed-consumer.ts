@@ -29,6 +29,13 @@ interface DiagnosticOutput {
   readonly diagnostics: Diagnostic[];
 }
 
+interface PrintedConfiguration {
+  readonly compilerOptions?: {
+    readonly isolatedModules?: boolean;
+    readonly verbatimModuleSyntax?: boolean;
+  };
+}
+
 interface PackageManifest {
   readonly dependencies: Readonly<Record<string, string>>;
   readonly devDependencies: Readonly<Record<string, string>>;
@@ -41,7 +48,7 @@ type JsonValue = JsonScalar | JsonValue[] | { [key: string]: JsonValue };
 
 const repository = fileURLToPath(new URL("..", import.meta.url));
 
-// SAFETY: This repository-owned manifest is validated below for every required exact, coherent tool pin.
+// oxlint-disable-next-line anti-slop/no-json-parse-type-assertion -- SAFETY: This repository-owned manifest is validated below for every required exact, coherent tool pin.
 const manifest = JSON.parse(
   readFileSync(join(repository, "package.json"), "utf8"),
 ) as PackageManifest;
@@ -77,6 +84,17 @@ const toolVersions = Object.fromEntries(
     return [name, peerVersion];
   }),
 );
+
+const nodeTypesVersion = manifest.devDependencies["@types/node"];
+
+if (
+  nodeTypesVersion === undefined ||
+  !/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(nodeTypesVersion)
+) {
+  throw new Error(
+    `@types/node must use an exact development version, found ${nodeTypesVersion ?? "missing"}.`,
+  );
+}
 
 const pluginApiVersion = manifest.dependencies["@oxlint/plugins"];
 
@@ -130,7 +148,7 @@ const expectFailure = (label: string, result: CommandResult, expectedText: strin
 const expectErrorDiagnostic = (label: string, result: CommandResult, rule: string): void => {
   expectFailure(label, result, rule);
 
-  // SAFETY: Oxlint's JSON reporter owns this stable diagnostic envelope; malformed output fails the assertions below rather than being accepted as a passing check.
+  // oxlint-disable-next-line anti-slop/no-json-parse-type-assertion -- SAFETY: Oxlint's JSON reporter owns this stable diagnostic envelope; malformed output fails the assertions below rather than being accepted as a passing check.
   const report = JSON.parse(result.stdout) as DiagnosticOutput;
 
   const diagnostic = report.diagnostics.find((item) =>
@@ -195,7 +213,7 @@ try {
       .filter((path) => path !== ""),
   );
 
-  // SAFETY: The checked-in snapshot was validated by check:vendor before this packed boundary.
+  // oxlint-disable-next-line anti-slop/no-json-parse-type-assertion -- SAFETY: The checked-in snapshot was validated by check:vendor before this packed boundary.
   const snapshot = JSON.parse(
     readFileSync(join(repository, "vendor/anti-slop/upstream.snapshot.json"), "utf8"),
   ) as { readonly files: Readonly<Record<string, string>> };
@@ -217,6 +235,7 @@ try {
     type: "module",
     dependencies: {
       "@syzom/typescript-quality": `file:${tarballPath}`,
+      "@types/node": nodeTypesVersion,
       ...toolVersions,
     },
   });
@@ -247,10 +266,27 @@ try {
     extends: "@syzom/typescript-quality/tsconfig",
     files: [],
   });
-  expectSuccess(
-    "Short tsconfig alias",
-    run("node_modules/.bin/tsc", ["--showConfig", "--project", "tsconfig-base-alias.json"]),
-  );
+
+  const shownBaseConfig = run("node_modules/.bin/tsc", [
+    "--showConfig",
+    "--project",
+    "tsconfig-base-alias.json",
+  ]);
+
+  expectSuccess("Short tsconfig alias", shownBaseConfig);
+
+  // oxlint-disable-next-line anti-slop/no-json-parse-type-assertion -- SAFETY: TypeScript owns this showConfig envelope; both required published compiler values are checked immediately below.
+  const parsedBaseConfig = JSON.parse(shownBaseConfig.stdout) as PrintedConfiguration;
+
+  if (
+    parsedBaseConfig.compilerOptions?.isolatedModules !== true ||
+    parsedBaseConfig.compilerOptions.verbatimModuleSyntax !== true
+  ) {
+    throw new Error(
+      "Published base tsconfig must enable isolatedModules and verbatimModuleSyntax.",
+    );
+  }
+
   json("tsconfig-effect-alias.json", {
     extends: "@syzom/typescript-quality/tsconfig/effect",
     files: [],
@@ -261,6 +297,7 @@ try {
   );
   json("tsconfig.json", {
     extends: "@syzom/typescript-quality/tsconfig/effect.json",
+    compilerOptions: { types: ["node"] },
     include: ["src/**/*.ts"],
   });
   json("biome.json", { extends: ["@syzom/typescript-quality/biome"] });
@@ -485,6 +522,76 @@ export function impossible(value: string): never {
     'const value: string = "known";\n\n// SAFETY: The assertion is intentionally redundant to verify the compiler-backed lint rule.\nexport const text = value as string;\n',
     "no-unnecessary-type-assertion",
   );
+  negative(
+    "src/unnecessary-type-parameter.ts",
+    "export function count<T>(values: T[]): number { return values.length; }\n",
+    "no-unnecessary-type-parameters",
+  );
+  negative(
+    "src/unknown-catch-callback.ts",
+    'export const caught = Promise.reject(new Error("failure")).catch((error) => String(error));\n',
+    "use-unknown-in-catch-callback-variable",
+  );
+  negative(
+    "src/promise-executor-return.ts",
+    "export const promise = new Promise<void>((resolve) => (resolve(), 1));\n",
+    "no-promise-executor-return",
+  );
+  negative(
+    "src/promise-rejection.ts",
+    'export const rejected = Promise.reject("failure");\n',
+    "prefer-promise-reject-errors",
+  );
+  negative("src/error-without-message.ts", "export const error = new Error();\n", "error-message");
+  negative(
+    "src/json-parse-assertion.ts",
+    '// SAFETY: A comment must not convert unvalidated runtime JSON into evidence.\nexport const parsed = JSON.parse("{}") as { readonly value: string };\n',
+    "no-json-parse-type-assertion",
+  );
+  write(
+    "src/local-json-parser.ts",
+    `declare const JSON: { parse(text: string): number | string };
+
+// SAFETY: This fixture deliberately narrows the module-local parser contract to prove it is not the global JSON boundary.
+export const parsed = JSON.parse("{}") as string;
+`,
+  );
+  expectSuccess("Module-local JSON parser", lint("src/local-json-parser.ts"));
+  rmSync(join(consumer, "src/local-json-parser.ts"));
+  write(
+    "src/type-cycle-a.ts",
+    `import type { TypeCycleB } from "./type-cycle-b.js";
+
+export interface TypeCycleA { readonly other?: TypeCycleB }
+`,
+  );
+  write(
+    "src/type-cycle-b.ts",
+    `import type { TypeCycleA } from "./type-cycle-a.js";
+
+export interface TypeCycleB { readonly other?: TypeCycleA }
+`,
+  );
+  expectSuccess("Type-only import cycle", lint("src/type-cycle-a.ts"));
+  rmSync(join(consumer, "src/type-cycle-a.ts"));
+  rmSync(join(consumer, "src/type-cycle-b.ts"));
+  write(
+    "src/runtime-cycle-a.ts",
+    `import { runtimeCycleB } from "./runtime-cycle-b.js";
+
+export const runtimeCycleA: number = runtimeCycleB;
+`,
+  );
+  write(
+    "src/runtime-cycle-b.ts",
+    `import { runtimeCycleA } from "./runtime-cycle-a.js";
+
+export const runtimeCycleB: number = runtimeCycleA;
+`,
+  );
+  expectErrorDiagnostic("Runtime import cycle", lintJson("src/runtime-cycle-a.ts"), "no-cycle");
+  rmSync(join(consumer, "src/runtime-cycle-a.ts"));
+  rmSync(join(consumer, "src/runtime-cycle-b.ts"));
   write(
     "src/complexity.ts",
     `export function tooComplex(value: number): number {
@@ -542,6 +649,11 @@ export const program = Effect.succeed(counterFrom(1));
 `,
   );
   expectSuccess("Effect and non-service factory example", lint("src/effect-valid.ts"));
+  write(
+    "src/node-import.ts",
+    'import { join } from "node:path";\n\nexport const path = join("root", "child");\n',
+  );
+  expectSuccess("Project-owned Node built-in import", lint("src/node-import.ts"));
   negative("src/type-error.ts", 'export const broken: number = "not a number";\n', "TS2322");
   negative(
     "src/effect-error-tag.ts",
@@ -552,20 +664,22 @@ export const recoverByTag = Effect.catch((error: { readonly _tag: "NotFound" }) 
 `,
     "no-manual-effect-error-tag",
   );
-  negative(
-    "src/manual-tag.ts",
-    'declare const value: { readonly _tag: "Ready" };\nexport const ready = value._tag === "Ready";\n',
-    "no-manual-tag-comparison",
+  write(
+    "src/effect-architecture-valid.ts",
+    `import { makeCounter } from "./factory.js";
+
+declare const value: { readonly _tag: "Ready" };
+
+export const ready = value._tag === "Ready";
+
+export const tagged = { _tag: "Ready", value: 1 };
+
+export const counter = makeCounter(1);
+`,
   );
-  negative(
-    "src/manual-tagged-construction.ts",
-    'export const ready = { _tag: "Ready", value: 1 };\n',
-    "no-manual-tagged-construction",
-  );
-  negative(
-    "src/service-constructor.ts",
-    'import { makeCounter } from "./factory.js";\nexport const value = makeCounter(1);\n',
-    "no-service-constructor-imports",
+  expectSuccess(
+    "Project-owned tagged values and constructors",
+    lint("src/effect-architecture-valid.ts"),
   );
   negative(
     "src/prefer-effect-match.ts",
