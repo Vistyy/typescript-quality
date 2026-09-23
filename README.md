@@ -8,7 +8,7 @@ The toolchain requires Node.js 22.18.0 or newer and is verified on Node.js 22 an
 
 ```sh
 pnpm add --save-dev --save-exact \
-  @syzom/typescript-quality@0.4.3 \
+  @syzom/typescript-quality@0.5.0 \
   @biomejs/biome@2.5.12 oxlint@1.82.0 oxlint-tsgolint@7.0.2001 \
   typescript@7.0.2
 ```
@@ -91,7 +91,8 @@ The warning guards remain a safeguard for other tool diagnostics.
 - TypeScript owns strict checking, isolated-module compatibility, and verbatim module syntax so type-only imports remain explicit.
 - Biome owns formatting, recommended rules, explicit `any` rejection, and cognitive complexity capped at **15**.
 - Oxlint owns type-aware safety checks, exhaustive union switches (including switches with a `default` case), explicit `unknown` Promise rejection callbacks, unnecessary generic parameters and assertions, Promise executor returns, non-`Error` rejections, required built-in `Error` messages, and runtime import cycles while ignoring type-only cycles.
-- Assertions to `never` (including locally resolved aliases) and chained assertions are errors even when accompanied by a safety comment.
+- Assertions to `never` (including locally resolved aliases) and chained assertions are errors.
+- TypeScript `//` comments are reserved for Oxlint, Biome, and TypeScript suppressions or recognized top-of-file TypeScript triple-slash compiler directives. Ordinary line comments are errors; JSDoc and block comments remain permitted.
 - Runtime `typeof` is allowed in explicit type guards and existence probes; other runtime uses remain errors.
 - The generic preset rejects direct type assertions on global `JSON.parse` results, repeated eager array passes, copying reducer accumulators, accumulating spreads, and unreadable statement spacing in addition to its evidence and boundary rules.
 - The Effect preset makes the pinned upstream recommended rules errors except the blanket Node built-in import restriction, adds unsafe channel-assertion and `any`/`unknown` error/requirements-channel checks, and enables the focused manual Effect error-tag and Effect Match rules. It does not impose generic tagged-value construction or service-constructor architecture.
