@@ -474,9 +474,26 @@ export const keys = Object.keys(record) as Array<keyof typeof record>;
     "export const count = 1; // trailing explanation\n",
     "no-prose-line-comments",
   );
+  negative(
+    "src/triple-slash-prose.ts",
+    "/// This is still prose.\nexport const count = 1;\n",
+    "no-prose-line-comments",
+  );
+  negative(
+    "src/malformed-reference.ts",
+    '/// <reference comment="not a compiler directive" />\nexport const count = 1;\n',
+    "no-prose-line-comments",
+  );
+  negative(
+    "src/misplaced-reference.ts",
+    'export const count = 1;\n/// <reference types="node" />\n',
+    "no-prose-line-comments",
+  );
   write(
     "src/comment-policy-valid.ts",
-    `/** Public API documentation is still allowed. */
+    `/// <reference types="node" />
+/// <reference lib="es2022" />
+/** Public API documentation is still allowed. */
 export function display(value: string | number): string {
   // oxlint-disable-next-line anti-slop/no-runtime-typeof -- This fixture checks rule-suppression directives.
   return typeof value === "string" ? value : String(value);
@@ -485,7 +502,10 @@ export function display(value: string | number): string {
 export const url = "https://example.test";
 `,
   );
-  expectSuccess("TypeScript JSDoc, rule suppression and URL", lint("src/comment-policy-valid.ts"));
+  expectSuccess(
+    "TypeScript compiler directives, JSDoc, suppression and URL",
+    lint("src/comment-policy-valid.ts"),
+  );
   rmSync(join(consumer, "src/comment-policy-valid.ts"));
 
   for (const expression of [
