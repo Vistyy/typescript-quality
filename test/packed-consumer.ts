@@ -457,6 +457,14 @@ export function exhaustive(value: "ready" | "done"): string {
 `,
   );
   expectSuccess("Narrowing, const, satisfies and proven never", lint("src/assertions-valid.ts"));
+  write(
+    "src/owned-keys.ts",
+    `const record = { first: 1, second: 2 } as const;
+
+export const keys = Object.keys(record) as Array<keyof typeof record>;
+`,
+  );
+  expectSuccess("Owned keys without an assertion comment", lint("src/owned-keys.ts"));
 
   for (const expression of [
     "value as never",
