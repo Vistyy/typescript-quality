@@ -178,7 +178,6 @@ const collectFiles = (directory: string, extension: string): string[] => {
 const json = (path: string, value: JsonValue): void =>
   write(path, `${JSON.stringify(value, null, 2)}\n`);
 
-// Deliberately no type-check/type-aware/deny-warnings flags: adopted config owns them.
 const lint = (path: string): CommandResult =>
   run("node_modules/.bin/oxlint", ["--config", "oxlint.config.ts", path]);
 
@@ -197,7 +196,6 @@ export default defineConfig({ ...config });
 const negative = (path: string, content: string, expectedText: string): void => {
   write(path, content);
   expectErrorDiagnostic(path, lintJson(path), expectedText);
-  // Full type-checking can inspect all files in the tsconfig, not just the lint target.
   rmSync(join(consumer, path));
 };
 
@@ -466,6 +464,30 @@ export const keys = Object.keys(record) as Array<keyof typeof record>;
   );
   expectSuccess("Owned keys without an assertion comment", lint("src/owned-keys.ts"));
 
+  negative(
+    "src/prose-comment.ts",
+    '// An ordinary note is not a suppression.\nexport const url = "https://example.test";\n',
+    "no-prose-line-comments",
+  );
+  negative(
+    "src/trailing-comment.ts",
+    "export const count = 1; // trailing explanation\n",
+    "no-prose-line-comments",
+  );
+  write(
+    "src/comment-policy-valid.ts",
+    `/** Public API documentation is still allowed. */
+export function display(value: string | number): string {
+  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- This fixture checks rule-suppression directives.
+  return typeof value === "string" ? value : String(value);
+}
+
+export const url = "https://example.test";
+`,
+  );
+  expectSuccess("TypeScript JSDoc, rule suppression and URL", lint("src/comment-policy-valid.ts"));
+  rmSync(join(consumer, "src/comment-policy-valid.ts"));
+
   for (const expression of [
     "value as never",
     "<never>value",
@@ -476,7 +498,6 @@ export const keys = Object.keys(record) as Array<keyof typeof record>;
       "src/assert-never.ts",
       `type Impossible = never;
 export function impossible(value: string): never {
-  // SAFETY: A comment must not bypass the assertion prohibition.
   return ${expression};
 }
 `,
@@ -492,7 +513,6 @@ export function impossible(value: string): never {
     negative(
       "src/assert-chain.ts",
       `export function launder(value: number): string {
-  // SAFETY: A comment must not bypass the assertion prohibition.
   return ${expression};
 }
 `,
@@ -530,7 +550,7 @@ export function impossible(value: string): never {
   );
   negative(
     "src/unnecessary-assertion.ts",
-    'const value: string = "known";\n\n// SAFETY: The assertion is intentionally redundant to verify the compiler-backed lint rule.\nexport const text = value as string;\n',
+    'const value: string = "known";\n\nexport const text = value as string;\n',
     "no-unnecessary-type-assertion",
   );
   negative(
@@ -570,24 +590,23 @@ export const rejected = promise.then(undefined, (error: unknown) => String(error
   negative("src/error-without-message.ts", "export const error = new Error();\n", "error-message");
   negative(
     "src/json-parse-assertion.ts",
-    '// SAFETY: A comment must not convert unvalidated runtime JSON into evidence.\nexport const parsed = JSON.parse("{}") as { readonly value: string };\n',
+    'export const parsed = JSON.parse("{}") as { readonly value: string };\n',
     "no-json-parse-type-assertion",
   );
   negative(
     "src/global-this-json-parse-assertion.ts",
-    '// SAFETY: Qualifying the global JSON object must not bypass validation.\nexport const parsed = globalThis.JSON.parse("{}") as { readonly value: string };\n',
+    'export const parsed = globalThis.JSON.parse("{}") as { readonly value: string };\n',
     "no-json-parse-type-assertion",
   );
   negative(
     "src/optional-json-parse-assertion.ts",
-    '// SAFETY: Optional access to the global JSON object must not bypass validation.\nexport const parsed = JSON?.parse("{}") as { readonly value: string };\n',
+    'export const parsed = JSON?.parse("{}") as { readonly value: string };\n',
     "no-json-parse-type-assertion",
   );
   write(
     "src/local-json-parser.ts",
     `declare const JSON: { parse(text: string): number | string };
 
-// SAFETY: This fixture deliberately narrows the module-local parser contract to prove it is not the global JSON boundary.
 export const parsed = JSON.parse("{}") as string;
 `,
   );
@@ -598,7 +617,6 @@ export const parsed = JSON.parse("{}") as string;
     `// oxlint-disable-next-line no-shadow-restricted-names -- This local binding distinguishes the rule's lexical scope handling from the global object.
 const globalThis = { JSON: { parse: (_text: string): number | string => "parsed" } };
 
-// SAFETY: This fixture deliberately narrows the module-local globalThis contract to prove it is not the global JSON boundary.
 export const parsed = globalThis.JSON.parse("{}") as string;
 `,
   );

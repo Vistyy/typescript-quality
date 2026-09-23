@@ -51,7 +51,6 @@ if (effectOptions === undefined || effectOptions === true || effectOptions === f
   throw new Error("Installed @effect/tsgo schema omitted its language-service options definition.");
 }
 
-// SAFETY: The installed options schema has been narrowed to its object form above.
 const effectOptionProperties = (
   effectOptions as { readonly properties?: Readonly<Record<string, AnySchema>> }
 ).properties;

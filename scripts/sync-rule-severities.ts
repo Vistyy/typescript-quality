@@ -118,7 +118,6 @@ const parseOxlintConfiguration = (content: string): OxlintConfiguration => {
   return JSON.parse(content) as OxlintConfiguration;
 };
 
-// Inspect the unmodified selection policy, never the generated severity overlay.
 const oxlint = parseOxlintConfiguration(
   await run(process.execPath, [
     "node_modules/oxlint/bin/oxlint",
@@ -231,13 +230,14 @@ for (const group of Object.keys(
   }
 }
 
-// Bound native process concurrency; documentation output can be substantial.
+const biomeExplainConcurrency = 4;
+
 let index = 0;
 
 const recommendedWarnings: RuleCandidate[] = [];
 
 await Promise.all(
-  Array.from({ length: 4 }, async () => {
+  Array.from({ length: biomeExplainConcurrency }, async () => {
     while (index < candidates.length) {
       const candidate = candidates[index];
       index += 1;
@@ -273,7 +273,6 @@ for (const { group, name } of recommendedWarnings) {
     rules = configured;
   }
 
-  // Preserve explicit policy, including disabled rules and configured options.
   if (!(name in rules)) {
     rules[name] = "error";
     biomePromotions += 1;
